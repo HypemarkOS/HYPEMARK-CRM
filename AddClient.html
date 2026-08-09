@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body{font-family:Arial,sans-serif;margin:0;padding:24px;background:#f6f7f9;color:#202124}
+    h2{margin:0 0 20px;font-size:24px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .full{grid-column:1/-1}label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+    input,textarea{box-sizing:border-box;width:100%;padding:11px;border:1px solid #d0d5dd;border-radius:7px;font-size:14px;background:#fff}
+    textarea{min-height:80px;resize:vertical}.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+    button{border:0;border-radius:7px;padding:11px 20px;font-weight:600;cursor:pointer}.cancel{background:#e9eaed}.save{background:#1a73e8;color:#fff}
+    #msg{margin-top:14px;font-size:14px}.error{color:#b3261e}.success{color:#137333}
+  </style>
+</head>
+<body>
+  <h2>Add New Client</h2>
+  <form id="clientForm">
+    <div class="grid">
+      <div><label>Client Name *</label><input name="clientName" required></div>
+      <div><label>Business Name *</label><input name="businessName" required></div>
+      <div><label>Contact Person</label><input name="contactPerson"></div>
+      <div><label>Mobile</label><input name="mobile" inputmode="numeric"></div>
+      <div><label>Email</label><input name="email" type="email"></div>
+      <div><label>GST</label><input name="gst"></div>
+      <div class="full"><label>Address</label><textarea name="address"></textarea></div>
+    </div>
+    <div id="msg"></div>
+    <div class="actions">
+      <button type="button" class="cancel" onclick="google.script.host.close()">Cancel</button>
+      <button type="submit" class="save" id="saveBtn">Save Client</button>
+    </div>
+  </form>
+  <script>
+    document.getElementById('clientForm').addEventListener('submit', function(e){
+      e.preventDefault();
+      var form=e.target, data={};
+      Array.from(form.elements).forEach(function(el){if(el.name)data[el.name]=el.value;});
+      var msg=document.getElementById('msg'), btn=document.getElementById('saveBtn');
+      btn.disabled=true; btn.textContent='Saving...'; msg.className=''; msg.textContent='';
+      google.script.run.withSuccessHandler(function(client){
+        msg.className='success'; msg.textContent='Client created: '+client['Client ID'];
+        form.reset(); btn.disabled=false; btn.textContent='Save Client';
+      }).withFailureHandler(function(err){
+        msg.className='error'; msg.textContent=err.message || 'Unable to save client.';
+        btn.disabled=false; btn.textContent='Save Client';
+      }).createClient(data);
+    });
+  </script>
+</body>
+</html>
