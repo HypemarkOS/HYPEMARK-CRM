@@ -5,8 +5,9 @@ function appendRow_(sheetName, headers, rowObject) {
   sheet.appendRow(row);
   return row;
 }
+
 function getRows_(sheetName) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  var sheet = getCRMSpreadsheet_().getSheetByName(sheetName);
   if (!sheet || sheet.getLastRow() < 2) return [];
   return sheet.getDataRange().getValues();
 }
