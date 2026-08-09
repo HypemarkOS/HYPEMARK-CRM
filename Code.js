@@ -2,10 +2,12 @@
  * HYPEMARK CRM v1
  * Public Apps Script entry points.
  */
-function doGet() {
-  return HtmlService.createTemplateFromFile('Index')
+function doGet(e) {
+  var page = e && e.parameter ? e.parameter.page : '';
+  var file = page === 'add' ? 'AddClient' : 'Index';
+  return HtmlService.createTemplateFromFile(file)
     .evaluate()
-    .setTitle('HYPEMARK CRM')
+    .setTitle(page === 'add' ? 'Add Client | HYPEMARK CRM' : 'HYPEMARK CRM')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
