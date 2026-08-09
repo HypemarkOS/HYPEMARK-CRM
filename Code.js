@@ -1,26 +1,8 @@
 /**
- * ==========================================================
- * HYPEMARK CRM v1.0
- * Main Menu
- * ==========================================================
+ * HYPEMARK CRM v1
+ * Main entry points
  */
-
-function onOpen() {
-
-  SpreadsheetApp.getUi()
-    .createMenu("HYPEMARK CRM")
-
-    .addItem("📊 Dashboard", "showDashboard")
-
-    .addSeparator()
-
-    .addItem("➕ Add Client", "showAddClientForm")
-    .addItem("👥 View Clients", "viewClients")
-
-    .addSeparator()
-
-    .addItem("🔄 Refresh CRM", "initializeCRM")
-
-    .addToUi();
-
+function doGet() {
+  return HtmlService.createHtmlOutput('<h2>HYPEMARK CRM</h2><p>CRM is ready.</p>')
+    .setTitle('HYPEMARK CRM');
 }
