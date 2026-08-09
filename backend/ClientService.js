@@ -19,7 +19,7 @@ function createClientService_(data) {
 }
 
 function getClientsService_() {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(APP.SHEETS.CLIENTS);
+  var sheet = getCRMSpreadsheet_().getSheetByName(APP.SHEETS.CLIENTS);
   if (!sheet || sheet.getLastRow() < 2) return [];
   var values = sheet.getDataRange().getValues();
   var headers = values.shift();
