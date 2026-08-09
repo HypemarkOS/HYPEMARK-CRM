@@ -1,17 +1,13 @@
 /**
  * HYPEMARK CRM v1
  * Public Apps Script entry points.
- * Keep these functions in the root file so the Apps Script editor exposes them.
  */
-
 function doGet() {
-  return HtmlService.createHtmlOutput('<h2>HYPEMARK CRM</h2><p>CRM is ready.</p>')
-    .setTitle('HYPEMARK CRM');
+  return HtmlService.createHtmlOutput('<h2>HYPEMARK CRM</h2><p>CRM is ready.</p>').setTitle('HYPEMARK CRM');
 }
 
 function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu('🚀 HYPEMARK CRM')
+  SpreadsheetApp.getUi().createMenu('🚀 HYPEMARK CRM')
     .addItem('➕ Add Client', 'showAddClient')
     .addSeparator()
     .addItem('⚙ Initialize CRM', 'initializeCRM')
@@ -19,20 +15,12 @@ function onOpen() {
 }
 
 function showAddClient() {
-  var html = HtmlService.createHtmlOutput('<div style="font-family:Arial;padding:24px"><h2>Add New Client</h2><p>Client form is ready for the next module.</p></div>')
-    .setWidth(700)
-    .setHeight(500);
+  var html = HtmlService.createHtmlOutputFromFile('AddClient')
+    .setWidth(900)
+    .setHeight(700);
   SpreadsheetApp.getUi().showModalDialog(html, 'Add New Client');
 }
 
-function initializeCRM() {
-  return initializeCRMService_();
-}
-
-function createClient(data) {
-  return createClientService_(data);
-}
-
-function getClients() {
-  return getClientsService_();
-}
+function initializeCRM() { return initializeCRMService_(); }
+function createClient(data) { return createClientService_(data); }
+function getClients() { return getClientsService_(); }
