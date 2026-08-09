@@ -1,4 +1,4 @@
-function createClient(data) {
+function createClientService_(data) {
   var validation = validateClient_(data);
   if (!validation.valid) throw new Error(validation.errors.join(' '));
   var client = {
@@ -17,10 +17,15 @@ function createClient(data) {
   logInfo_('Client created', { id: client['Client ID'] });
   return client;
 }
-function getClients() {
+
+function getClientsService_() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(APP.SHEETS.CLIENTS);
   if (!sheet || sheet.getLastRow() < 2) return [];
   var values = sheet.getDataRange().getValues();
   var headers = values.shift();
-  return values.map(function(row){ var o={}; headers.forEach(function(h,i){ o[h]=row[i]; }); return o; });
+  return values.map(function(row) {
+    var object = {};
+    headers.forEach(function(header, index) { object[header] = row[index]; });
+    return object;
+  });
 }
