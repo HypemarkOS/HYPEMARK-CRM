@@ -38,3 +38,6 @@ function getClient(clientId) { return getClientService_(clientId); }
 function updateClient(clientId, data) { return updateClientService_(clientId, data); }
 function createEngagement(data) { return createEngagementService_(data); }
 function getEngagements(clientId) { return getEngagementsService_(clientId); }
+function createProject(data) { return createProjectService_(data); }
+function getProjects(clientId) { return getProjectsService_(clientId); }
+function getProject(projectId) { return getProjectService_(projectId); }
