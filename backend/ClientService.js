@@ -14,6 +14,7 @@ function createClientService_(data) {
     'Created On': now_()
   };
   appendRow_(APP.SHEETS.CLIENTS, ['Client ID','Client Name','Business Name','Contact Person','Mobile','Email','Address','GST','Status','Created On'], client);
+  recordActivity_('Client', client['Client ID'], 'Created client');
   logInfo_('Client created', { id: client['Client ID'] });
   return client;
 }
