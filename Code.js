@@ -3,7 +3,14 @@
  * Public Apps Script entry points.
  */
 function doGet() {
-  return HtmlService.createHtmlOutput('<h2>HYPEMARK CRM</h2><p>CRM is ready.</p>').setTitle('HYPEMARK CRM');
+  return HtmlService.createTemplateFromFile('Index')
+    .evaluate()
+    .setTitle('HYPEMARK CRM')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function include(fileName) {
+  return HtmlService.createHtmlOutputFromFile(fileName).getContent();
 }
 
 function onOpen() {
@@ -15,7 +22,8 @@ function onOpen() {
 }
 
 function showAddClient() {
-  var html = HtmlService.createHtmlOutputFromFile('AddClient')
+  var html = HtmlService.createTemplateFromFile('AddClient')
+    .evaluate()
     .setWidth(900)
     .setHeight(700);
   SpreadsheetApp.getUi().showModalDialog(html, 'Add New Client');
@@ -24,3 +32,5 @@ function showAddClient() {
 function initializeCRM() { return initializeCRMService_(); }
 function createClient(data) { return createClientService_(data); }
 function getClients() { return getClientsService_(); }
+function getClient(clientId) { return getClientService_(clientId); }
+function updateClient(clientId, data) { return updateClientService_(clientId, data); }
