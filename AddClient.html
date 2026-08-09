@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HYPEMARK CRM - Client Onboarding</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Segoe UI,Arial,sans-serif;
+  background:#eef3fb;
+}
+.header{
+    background:linear-gradient(135deg,#1D4ED8,#3B82F6,#60A5FA);
+    color:white;
+    padding:28px 35px;
+    border-radius:0 0 24px 24px;
+    box-shadow:0 12px 30px rgba(37,99,235,.25);
+}
+.header h1{margin:0;font-size:28px}
+.header p{margin:6px 0 0;opacity:.9}
+.progress{
+  margin-top:18px;height:8px;background:rgba(255,255,255,.25);
+  border-radius:20px;overflow:hidden
+}
+.progress div{width:16%;height:100%;background:#fff}
+.container{
+    max-width:1100px;
+    margin:30px auto;
+    padding:0 20px;
+}
+.card{
+    background:#ffffff;
+    border-radius:18px;
+    padding:30px;
+    box-shadow:
+        0 12px 35px rgba(15,23,42,.08),
+        0 3px 8px rgba(15,23,42,.05);
+    transition:.25s;
+}
+
+.card:hover{
+    transform:translateY(-2px);
+    box-shadow:
+        0 20px 45px rgba(15,23,42,.10),
+        0 6px 14px rgba(15,23,42,.08);
+}
+.card h2{margin:0 0 20px;color:#1e293b}
+.grid{
+ display:grid;
+ grid-template-columns:repeat(2,minmax(250px,1fr));
+ gap:18px;
+}
+.field label{
+ display:block;font-weight:600;margin-bottom:8px;color:#334155
+}
+.field input,
+.field select,
+.field textarea{
+
+    width:100%;
+    padding:13px 15px;
+
+    border:1px solid #CBD5E1;
+
+    border-radius:12px;
+
+    background:#F8FAFC;
+
+    font-size:14px;
+
+    transition:.25s;
+
+}
+
+.field input:hover,
+.field select:hover,
+.field textarea:hover{
+
+    border-color:#94A3B8;
+
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus{
+
+    outline:none;
+
+    border-color:#2563EB;
+
+    background:white;
+
+    box-shadow:0 0 0 4px rgba(37,99,235,.12);
+
+}
+ width:100%;padding:12px;border:1px solid #cbd5e1;
+ border-radius:10px;font-size:14px;outline:none;
+ transition:.2s;
+}
+.field input:focus,.field select:focus,.field textarea:focus{
+ border-color:#2563EB;
+ box-shadow:0 0 0 3px rgba(37,99,235,.15);
+}
+.footer{
+ display:flex;justify-content:space-between;
+ margin-top:24px;
+}
+button{
+
+    border:none;
+
+    border-radius:12px;
+
+    padding:13px 24px;
+
+    font-size:14px;
+
+    font-weight:600;
+
+    cursor:pointer;
+
+    transition:.25s;
+
+}
+
+button:hover{
+
+    transform:translateY(-2px);
+
+}
+
+.primary{
+
+    background:#2563EB;
+
+    color:white;
+
+}
+
+.primary:hover{
+
+    background:#1D4ED8;
+
+}
+
+.success{
+
+    background:#10B981;
+
+    color:white;
+
+}
+
+.success:hover{
+
+    background:#059669;
+
+}
+
+.secondary{
+
+    background:#E2E8F0;
+
+}
+ border:none;padding:12px 22px;border-radius:10px;
+ cursor:pointer;font-weight:600
+}
+.secondary{background:#e2e8f0}
+.success{background:#16a34a;color:#fff}
+.primary{background:#2563EB;color:#fff}
+@media(max-width:800px){
+ .grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="header">
+<h1>🏢 HYPEMARK CRM</h1>
+<p>Client Onboarding • Step 1 of 6</p>
+<div class="progress"><div></div></div>
+</div>
+
+<div class="workspace">
+
+<div class="sidebar">
+
+    <div class="logo">
+
+        <h2>🏢 HYPEMARK</h2>
+
+        <p>CRM v1.0</p>
+
+    </div>
+
+    <div class="menu-item active">
+
+        👤 Client
+
+    </div>
+
+    <div class="menu-item">
+
+        🏢 Business
+
+    </div>
+
+    <div class="menu-item">
+
+        💼 Contract
+
+    </div>
+
+    <div class="menu-item">
+
+        🎯 Deliverables
+
+    </div>
+
+    <div class="menu-item">
+
+        👨‍💼 Team
+
+    </div>
+
+    <div class="menu-item">
+
+        ✅ Review
+
+   </div>
+
+</div>
+
+</body>
