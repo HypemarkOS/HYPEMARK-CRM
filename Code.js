@@ -36,3 +36,5 @@ function createClient(data) { return createClientService_(data); }
 function getClients() { return getClientsService_(); }
 function getClient(clientId) { return getClientService_(clientId); }
 function updateClient(clientId, data) { return updateClientService_(clientId, data); }
+function createEngagement(data) { return createEngagementService_(data); }
+function getEngagements(clientId) { return getEngagementsService_(clientId); }
