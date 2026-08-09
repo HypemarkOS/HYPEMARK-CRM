@@ -1,33 +1,6 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <base target="_top">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    *{box-sizing:border-box}body{margin:0;background:#f7f8fb;color:#18202a;font-family:Inter,Arial,sans-serif}.wrap{padding:26px}.head{margin-bottom:22px}.eyebrow{font-size:11px;color:#6d4aff;font-weight:800;text-transform:uppercase;letter-spacing:.8px}.head h2{margin:5px 0;font-size:24px}.head p{margin:0;color:#718096;font-size:12px}.form{background:#fff;border:1px solid #e7ebf0;border-radius:14px;padding:22px}.section{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;margin:2px 0 14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:11px;font-weight:700;color:#586273}.field input,.field textarea{border:1px solid #dfe4eb;border-radius:8px;padding:10px 11px;outline:none;font-size:13px;background:#fff}.field textarea{min-height:74px;resize:vertical}.field input:focus,.field textarea:focus{border-color:#9b89ff;box-shadow:0 0 0 3px rgba(109,74,255,.08)}.req{color:#d94b5b}.actions{display:flex;justify-content:flex-end;gap:9px;margin-top:20px}.btn{border:0;border-radius:8px;padding:10px 15px;cursor:pointer;font-weight:700;font-size:12px}.cancel{background:#eef1f5;color:#4b5563}.save{background:#6d4aff;color:#fff}.save:disabled{opacity:.6;cursor:wait}.message{display:none;margin-top:12px;padding:10px;border-radius:8px;font-size:12px}.message.error{display:block;background:#fff0f2;color:#b52f40}.message.success{display:block;background:#eaf8f2;color:#13815d}
-  </style>
-</head>
-<body>
-<div class="wrap">
-  <div class="head"><div class="eyebrow">Client Management</div><h2>Add New Client</h2><p>Capture the client once. Projects, work and payments will connect to this record.</p></div>
-  <form id="form" class="form" onsubmit="saveClient(event)">
-    <div class="section">Basic Information</div>
-    <div class="grid">
-      <div class="field"><label>Client Name <span class="req">*</span></label><input id="clientName" required></div>
-      <div class="field"><label>Business Name <span class="req">*</span></label><input id="businessName" required></div>
-      <div class="field"><label>Contact Person</label><input id="contactPerson"></div>
-      <div class="field"><label>Mobile</label><input id="mobile" inputmode="tel"></div>
-      <div class="field"><label>Email</label><input id="email" type="email"></div>
-      <div class="field"><label>GST</label><input id="gst"></div>
-      <div class="field full"><label>Address</label><textarea id="address"></textarea></div>
-    </div>
-    <div id="message" class="message"></div>
-    <div class="actions"><button type="button" class="btn cancel" onclick="google.script.host.close()">Cancel</button><button id="save" class="btn save" type="submit">Save Client</button></div>
-  </form>
-</div>
-<script>
-function value(id){return document.getElementById(id).value.trim()}
-function showMessage(text,type){var el=document.getElementById('message');el.textContent=text;el.className='message '+type}
-function saveClient(e){e.preventDefault();var button=document.getElementById('save');button.disabled=true;showMessage('Saving client...','success');var data={clientName:value('clientName'),businessName:value('businessName'),contactPerson:value('contactPerson'),mobile:value('mobile'),email:value('email'),gst:value('gst'),address:value('address')};google.script.run.withSuccessHandler(function(client){showMessage('Client '+client['Client ID']+' created successfully.','success');setTimeout(function(){google.script.host.close()},650)}).withFailureHandler(function(err){button.disabled=false;showMessage(err.message||String(err),'error')}).createClient(data)}
-</script>
-</body></html>
+<html><head><base target="_top"><meta name="viewport" content="width=device-width, initial-scale=1"><style>
+*{box-sizing:border-box}body{margin:0;background:#f7f8fb;color:#18202a;font-family:Inter,Arial,sans-serif}.wrap{padding:26px}.head{margin-bottom:22px}.eyebrow{font-size:11px;color:#6d4aff;font-weight:800;text-transform:uppercase;letter-spacing:.8px}.head h2{margin:5px 0;font-size:24px}.head p{margin:0;color:#718096;font-size:12px}.form{background:#fff;border:1px solid #e7ebf0;border-radius:14px;padding:22px}.section{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;margin:2px 0 14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:11px;font-weight:700;color:#586273}.field input,.field textarea{border:1px solid #dfe4eb;border-radius:8px;padding:10px 11px;outline:none;font-size:13px;background:#fff}.field textarea{min-height:74px;resize:vertical}.field input:focus,.field textarea:focus{border-color:#9b89ff;box-shadow:0 0 0 3px rgba(109,74,255,.08)}.req{color:#d94b5b}.actions{display:flex;justify-content:flex-end;gap:9px;margin-top:20px}.btn{border:0;border-radius:8px;padding:10px 15px;cursor:pointer;font-weight:700;font-size:12px}.cancel{background:#eef1f5;color:#4b5563}.save{background:#6d4aff;color:#fff}.save:disabled{opacity:.6;cursor:wait}.message{display:none;margin-top:12px;padding:10px;border-radius:8px;font-size:12px}.message.error{display:block;background:#fff0f2;color:#b52f40}.message.success{display:block;background:#eaf8f2;color:#13815d}
+</style></head><body><div class="wrap"><div class="head"><div class="eyebrow">Client Management</div><h2>Add New Client</h2><p>Capture the client once. Projects, work and payments will connect to this record.</p></div><form id="form" class="form" onsubmit="saveClient(event)"><div class="section">Basic Information</div><div class="grid"><div class="field"><label>Client Name <span class="req">*</span></label><input id="clientName" required></div><div class="field"><label>Business Name <span class="req">*</span></label><input id="businessName" required></div><div class="field"><label>Contact Person</label><input id="contactPerson"></div><div class="field"><label>Mobile</label><input id="mobile" inputmode="tel"></div><div class="field"><label>Email</label><input id="email" type="email"></div><div class="field"><label>GST</label><input id="gst"></div><div class="field full"><label>Address</label><textarea id="address"></textarea></div></div><div id="message" class="message"></div><div class="actions"><button type="button" class="btn cancel" onclick="closePage()">Cancel</button><button id="save" class="btn save" type="submit">Save Client</button></div></form></div><script>
+function value(id){return document.getElementById(id).value.trim()}function closePage(){if(window.google&&google.script&&google.script.host){google.script.host.close()}else{window.close()}}function showMessage(text,type){var el=document.getElementById('message');el.textContent=text;el.className='message '+type}function saveClient(e){e.preventDefault();var button=document.getElementById('save');button.disabled=true;showMessage('Saving client...','success');var data={clientName:value('clientName'),businessName:value('businessName'),contactPerson:value('contactPerson'),mobile:value('mobile'),email:value('email'),gst:value('gst'),address:value('address')};google.script.run.withSuccessHandler(function(client){showMessage('Client '+client['Client ID']+' created successfully.','success');setTimeout(closePage,650)}).withFailureHandler(function(err){button.disabled=false;showMessage(err.message||String(err),'error')}).createClient(data)}
+</script></body></html>
