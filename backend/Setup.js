@@ -1,4 +1,4 @@
-function initializeCRM() {
+function initializeCRMService_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var definitions = [
     [APP.SHEETS.CLIENTS, ['Client ID','Client Name','Business Name','Contact Person','Mobile','Email','Address','GST','Status','Created On']],
@@ -17,5 +17,5 @@ function initializeCRM() {
     sheet.getRange(1,1,1,def[1].length).setFontWeight('bold');
     sheet.setFrozenRows(1);
   });
-  SpreadsheetApp.getUi().alert('HYPEMARK CRM initialized successfully.');
+  return true;
 }
