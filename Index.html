@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clients | HYPEMARK CRM</title>
+  <style>
+    body{margin:0;font-family:Inter,Arial,sans-serif;background:#f5f7fa;color:#172033}.wrap{max-width:1200px;margin:0 auto;padding:32px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}.brand{font-size:22px;font-weight:800}.brand span{color:#6d4aff}.btn{border:0;background:#6d4aff;color:#fff;padding:11px 16px;border-radius:9px;font-weight:700;cursor:pointer}.card{background:#fff;border:1px solid #e7ebf1;border-radius:13px;padding:18px}.search{width:100%;max-width:430px;padding:11px;border:1px solid #dfe4eb;border-radius:8px;box-sizing:border-box}.table{width:100%;border-collapse:collapse;margin-top:18px}.table th{text-align:left;font-size:11px;color:#748094;text-transform:uppercase;padding:12px;border-bottom:1px solid #e7ebf1}.table td{padding:13px 12px;border-bottom:1px solid #e7ebf1;font-size:13px}.table tr:hover{background:#fafbff}.status{background:#eaf8f2;color:#13815d;padding:5px 9px;border-radius:16px;font-size:11px;font-weight:700}.muted{color:#748094}.empty{text-align:center;padding:50px;color:#748094}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div class="brand">HYPE<span>MARK</span> CRM · Clients</div><button class="btn" onclick="location.href=location.href.split('?')[0]">← Dashboard</button></div>
+  <div class="card"><input id="search" class="search" placeholder="Search client, business, mobile or email..." oninput="render()"><div id="table" class="empty">Loading clients...</div></div>
+</div>
+<script>
+var clients=[];
+function esc(v){return String(v==null?'':v).replace(/[&<>\'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]})}
+function render(){var q=(document.getElementById('search').value||'').toLowerCase();var list=clients.filter(function(c){return [c['Client Name'],c['Business Name'],c['Contact Person'],c['Mobile'],c['Email']].join(' ').toLowerCase().indexOf(q)>-1});if(!list.length){document.getElementById('table').innerHTML='<div class="empty">No matching clients.</div>';return}document.getElementById('table').innerHTML='<table class="table"><thead><tr><th>Client</th><th>Business</th><th>Contact</th><th>Mobile</th><th>Status</th></tr></thead><tbody>'+list.map(function(c){return '<tr><td><strong>'+esc(c['Client Name'])+'</strong></td><td>'+esc(c['Business Name'])+'</td><td>'+esc(c['Contact Person']||'-')+'</td><td>'+esc(c['Mobile']||'-')+'</td><td><span class="status">'+esc(c['Status']||'-')+'</span></td></tr>'}).join('')+'</tbody></table>'}
+google.script.run.withSuccessHandler(function(d){clients=d||[];render()}).withFailureHandler(function(e){document.getElementById('table').innerHTML='<div class="empty">Could not load clients: '+esc(e.message||e)+'</div>'}).getClients();
+</script>
+</body>
+</html>
