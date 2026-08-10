@@ -10,12 +10,23 @@ function doGet(e) {
     var theme = HtmlService.createHtmlOutputFromFile('PremiumTheme').getContent();
     var brandFix = HtmlService.createHtmlOutputFromFile('BrandFix').getContent();
     var premiumShell = HtmlService.createHtmlOutputFromFile('PremiumShell').getContent();
+    var logoFix = HtmlService.createHtmlOutputFromFile('LogoFix').getContent();
+    var logoData = getHypeMarkLogoDataUri_();
+    logoFix = logoFix.replace('__HYPEMARK_LOGO__', logoData);
     var html = output.getContent();
-    html = html.replace('</head>', theme + brandFix + premiumShell + '</head>');
+    html = html.replace('</head>', theme + brandFix + premiumShell + logoFix + '</head>');
     output = HtmlService.createHtmlOutput(html);
   }
   return output.setTitle(auth.authenticated ? 'HYPEMARK CRM' : 'Sign in | HYPEMARK CRM')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+function getHypeMarkLogoDataUri_(){
+  try{
+    var blob=DriveApp.getFileById('1-MtiN1DU-pvP4EZCtc1eQrY-NJWEqcgf').getBlob();
+    return 'data:'+(blob.getContentType()||'image/png')+';base64,'+Utilities.base64Encode(blob.getBytes());
+  }catch(err){
+    return '';
+  }
 }
 function include(fileName){return HtmlService.createHtmlOutputFromFile(fileName).getContent();}
 function onOpen(){SpreadsheetApp.getUi().createMenu('🚀 HYPEMARK CRM').addItem('➕ Add Client','showAddClient').addSeparator().addItem('⚙ Initialize CRM','initializeCRM').addToUi();}
