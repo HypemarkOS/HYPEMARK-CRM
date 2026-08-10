@@ -6,7 +6,8 @@ function doGet(e) { var page=e&&e.parameter?e.parameter.page:''; var file=page==
 function include(fileName){return HtmlService.createHtmlOutputFromFile(fileName).getContent();}
 function onOpen(){SpreadsheetApp.getUi().createMenu('🚀 HYPEMARK CRM').addItem('➕ Add Client','showAddClient').addSeparator().addItem('⚙ Initialize CRM','initializeCRM').addToUi();}
 function showAddClient(){var html=HtmlService.createTemplateFromFile('AddClient').evaluate().setWidth(900).setHeight(700);SpreadsheetApp.getUi().showModalDialog(html,'Add New Client');}
-function initializeCRM(){return initializeCRMService_();}
+function initializeCRM(){var url=initializeCRMService_(); cleanupDefaultSheet_(); return url;}
+function cleanupDefaultSheet_(){var ss=getCRMSpreadsheet_(); var sheet=ss.getSheetByName('Sheet1'); if(sheet && ss.getSheets().length>1 && sheet.getLastRow()===0 && sheet.getLastColumn()===0){ss.deleteSheet(sheet);}}
 function createClient(data){return createClientService_(data);} function getClients(){return getClientsService_();} function getClient(id){return getClientService_(id);} function updateClient(id,data){return updateClientService_(id,data);}
 function createEngagement(data){return createEngagementService_(data);} function getEngagements(clientId){return getEngagementsService_(clientId);}
 function createProject(data){return createProjectService_(data);} function getProjects(clientId){return getProjectsService_(clientId);} function getProject(id){return getProjectService_(id);}
