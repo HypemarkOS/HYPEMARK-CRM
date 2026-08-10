@@ -6,7 +6,7 @@ var PAYMENT_TYPES = {
 
 var RECEIPT_HEADERS = ['Receipt ID','Client ID','Amount','Payment Date','Received By','Payment Mode','Reference','Status','Notes','Allocated Amount','Remaining Balance'];
 var EMPLOYEE_HEADERS = ['Employee Payment ID','Employee','Client ID','Receipt ID','Payment Type','Amount','Payment Date','Commission %','Commission Base Amount','Commission Amount','Paid From','Payment Mode','Reference','Status','Notes'];
-var EXPENSE_HEADERS = ['Expense ID','Client ID','Receipt ID','Expense Category','Related To','Amount','Expense Date','Paid To','Payment Mode','Reference','Description','Status'];
+var EXPENSE_HEADERS = ['Expense ID','Client ID','Receipt ID','Expense Category','Related To','Amount','Expense Date','Paid By','Paid To','Payment Mode','Reference','Description','Status'];
 
 function ensurePaymentSheets_() {
   var ss = getCRMSpreadsheet_();
@@ -22,7 +22,7 @@ function ensurePaymentSheet_(ss, name, headers) {
   if (s.getLastRow() === 0) s.getRange(1,1,1,headers.length).setValues([headers]);
   else {
     var current = s.getRange(1,1,1,s.getLastColumn() || headers.length).getValues()[0];
-    headers.forEach(function(h){if(current.indexOf(h)===-1)s.getRange(1,s.getLastColumn()+1).setValue(h);});
+    headers.forEach(function(h){ if(current.indexOf(h)===-1) s.getRange(1,s.getLastColumn()+1).setValue(h); });
   }
   s.getRange(1,1,1,s.getLastColumn()).setFontWeight('bold');
   s.setFrozenRows(1);
@@ -44,12 +44,14 @@ function createClientReceipt_(data) {
   var clientId = asText_(data.clientId);
   if (!clientId || !getClientService_(clientId)) throw new Error('Please select a valid client.');
   var amount = positiveAmount_(data.amount);
+  var receivedBy = asText_(data.receivedBy || data.paidTo);
+  if (receivedBy && CONFIG.PAYMENT_ACCOUNTS.indexOf(receivedBy) === -1) throw new Error('Invalid receiving account.');
   var item = {
     'Receipt ID': generateId_(CONFIG.ID_PREFIX.CLIENT_RECEIPT),
     'Client ID': clientId,
     'Amount': amount,
     'Payment Date': data.paymentDate ? new Date(data.paymentDate) : now_(),
-    'Received By': asText_(data.receivedBy || data.paidTo),
+    'Received By': receivedBy,
     'Payment Mode': asText_(data.paymentMode),
     'Reference': asText_(data.reference),
     'Status': asText_(data.status) || 'Received',
@@ -118,8 +120,10 @@ function createBusinessExpense_(data) {
   if (receiptId && !receiptBelongsToClient_(receiptId, clientId)) throw new Error('Selected receipt does not belong to the selected client.');
   var category = asText_(data.expenseCategory) || 'Other';
   var relatedTo = asText_(data.relatedTo) || 'Other';
+  var paidBy = asText_(data.paidBy);
   if (CONFIG.EXPENSE_CATEGORIES.indexOf(category) === -1) throw new Error('Invalid expense category.');
   if (CONFIG.EXPENSE_CONTEXTS.indexOf(relatedTo) === -1) throw new Error('Invalid expense context.');
+  if (paidBy && CONFIG.PAID_BY_OPTIONS.indexOf(paidBy) === -1) throw new Error('Invalid Paid By value.');
   var amount = positiveAmount_(data.amount);
   if (receiptId) validateReceiptBalance_(receiptId, amount);
   var item = {
@@ -130,6 +134,7 @@ function createBusinessExpense_(data) {
     'Related To': relatedTo,
     'Amount': amount,
     'Expense Date': data.paymentDate ? new Date(data.paymentDate) : now_(),
+    'Paid By': paidBy,
     'Paid To': asText_(data.paidTo),
     'Payment Mode': asText_(data.paymentMode),
     'Reference': asText_(data.reference),
@@ -138,7 +143,7 @@ function createBusinessExpense_(data) {
   };
   appendRow_(APP.SHEETS.BUSINESS_EXPENSES, EXPENSE_HEADERS, item);
   applyReceiptBalanceFormulas_(getCRMSpreadsheet_());
-  recordActivity_('Business Expense', item['Expense ID'], 'Recorded ' + category + ' expense of ₹' + amount);
+  recordActivity_('Business Expense', item['Expense ID'], 'Recorded ' + category + ' expense of ₹' + amount + ' paid by ' + (paidBy || 'Unknown'));
   return serializePayment_(item);
 }
 
@@ -202,10 +207,13 @@ function getPaymentOptionsService_() {
     types: [PAYMENT_TYPES.CLIENT_RECEIPT, PAYMENT_TYPES.EMPLOYEE_PAYMENT, PAYMENT_TYPES.BUSINESS_EXPENSE],
     employees: employees,
     paymentAccounts: CONFIG.PAYMENT_ACCOUNTS,
+    paidBy: CONFIG.PAID_BY_OPTIONS,
     employeePaymentTypes: CONFIG.EMPLOYEE_PAYMENT_TYPES,
     expenseCategories: CONFIG.EXPENSE_CATEGORIES,
     expenseContexts: CONFIG.EXPENSE_CONTEXTS,
     paymentModes: CONFIG.PAYMENT_MODES,
+    statusOptions: CONFIG.STATUS_OPTIONS,
+    priorityOptions: CONFIG.PRIORITY_OPTIONS,
     commissionEnabled: true
   };
 }
