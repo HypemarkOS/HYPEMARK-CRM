@@ -10,7 +10,7 @@ function doGet(e) {
 function include(fileName){return HtmlService.createHtmlOutputFromFile(fileName).getContent();}
 function onOpen(){SpreadsheetApp.getUi().createMenu('🚀 HYPEMARK CRM').addItem('➕ Add Client','showAddClient').addSeparator().addItem('⚙ Initialize CRM','initializeCRM').addToUi();}
 function showAddClient(){requirePermission_(AUTH_PERMISSIONS.CLIENTS);var html=HtmlService.createTemplateFromFile('AddClient').evaluate().setWidth(900).setHeight(700);SpreadsheetApp.getUi().showModalDialog(html,'Add New Client');}
-function initializeCRM(){var url=initializeCRMService_();cleanupDefaultSheet_();return url;}
+function initializeCRM(){var url=initializeCRMService_();cleanupDefaultSheet_();ensureAuthSetup_();return url;}
 function cleanupDefaultSheet_(){var ss=getCRMSpreadsheet_();var sheet=ss.getSheetByName('Sheet1');if(sheet&&ss.getSheets().length>1&&sheet.getLastRow()===0&&sheet.getLastColumn()===0)ss.deleteSheet(sheet);}
 function createClient(data){requirePermission_(AUTH_PERMISSIONS.CLIENTS);return createClientService_(data);} function getClients(){requirePermission_(AUTH_PERMISSIONS.CLIENTS);return getClientsService_();} function getClient(id){requirePermission_(AUTH_PERMISSIONS.CLIENTS);return getClientService_(id);} function updateClient(id,data){requirePermission_(AUTH_PERMISSIONS.CLIENTS);return updateClientService_(id,data);}
 function createEngagement(data){requirePermission_(AUTH_PERMISSIONS.CLIENTS);return createEngagementService_(data);} function getEngagements(clientId){requirePermission_(AUTH_PERMISSIONS.CLIENTS);return getEngagementsService_(clientId);}
