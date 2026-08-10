@@ -4,7 +4,9 @@ var AUDIT_SHEETS = {
   'Projects': 'Project',
   'Deliverables': 'Deliverable',
   'ContentBank': 'Content',
-  'Payments': 'Payment',
+  'ClientReceipts': 'Client Receipt',
+  'EmployeePayments': 'Employee Payment',
+  'BusinessExpenses': 'Business Expense',
   'Users': 'User'
 };
 
@@ -35,15 +37,15 @@ function handleCRMEdit_(e) {
 
   var row = e.range.getRow();
   var lastColumn = sheet.getLastColumn();
+  if (!lastColumn) return;
   var headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
   var rowValues = sheet.getRange(row, 1, 1, lastColumn).getValues()[0];
-  var idIndex = headers.indexOf('Payment ID');
-  if (idIndex < 0) idIndex = 0;
-  var entityId = rowValues[idIndex] || row;
-
+  var entityId = rowValues[0] || row;
+  var entity = AUDIT_SHEETS[sheetName];
   var startCol = e.range.getColumn();
   var numCols = e.range.getNumColumns();
   var action;
+
   if (numCols === 1) {
     var header = headers[startCol - 1] || ('Column ' + startCol);
     var oldValue = e.oldValue === undefined ? '(blank)' : String(e.oldValue);
@@ -53,7 +55,8 @@ function handleCRMEdit_(e) {
   } else {
     action = 'Edited ' + sheetName + ' row ' + row + ' (' + numCols + ' cells)';
   }
-  recordActivity_(AUDIT_SHEETS[sheetName], String(entityId), action);
+
+  recordActivity_(entity, String(entityId), action);
 }
 
 function getActivitiesService_() {
