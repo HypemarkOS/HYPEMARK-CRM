@@ -4,9 +4,9 @@ var PAYMENT_TYPES = {
   BUSINESS_EXPENSE: 'Business Expense'
 };
 
-var RECEIPT_HEADERS = ['Receipt ID','Client ID','Amount','Payment Date','Received By','Payment Mode','Reference','Status','Notes'];
-var EMPLOYEE_HEADERS = ['Employee Payment ID','Employee','Client ID','Payment Type','Amount','Payment Date','Commission %','Commission Base Amount','Paid From','Payment Mode','Reference','Status','Notes'];
-var EXPENSE_HEADERS = ['Expense ID','Client ID','Expense Category','Related To','Amount','Expense Date','Paid To','Payment Mode','Reference','Description','Status'];
+var RECEIPT_HEADERS = ['Receipt ID','Client ID','Amount','Payment Date','Received By','Payment Mode','Reference','Status','Notes','Allocated Amount','Remaining Balance'];
+var EMPLOYEE_HEADERS = ['Employee Payment ID','Employee','Client ID','Receipt ID','Payment Type','Amount','Payment Date','Commission %','Commission Base Amount','Commission Amount','Paid From','Payment Mode','Reference','Status','Notes'];
+var EXPENSE_HEADERS = ['Expense ID','Client ID','Receipt ID','Expense Category','Related To','Amount','Expense Date','Paid To','Payment Mode','Reference','Description','Status'];
 
 function ensurePaymentSheets_() {
   var ss = getCRMSpreadsheet_();
@@ -14,6 +14,7 @@ function ensurePaymentSheets_() {
   ensurePaymentSheet_(ss, APP.SHEETS.EMPLOYEE_PAYMENTS, EMPLOYEE_HEADERS);
   ensurePaymentSheet_(ss, APP.SHEETS.BUSINESS_EXPENSES, EXPENSE_HEADERS);
   applyFinanceValidations_(ss);
+  applyReceiptBalanceFormulas_(ss);
 }
 
 function ensurePaymentSheet_(ss, name, headers) {
@@ -33,7 +34,6 @@ function createPaymentService_(data) {
   ensurePaymentSheets_();
   var type = asText_(data.type) || PAYMENT_TYPES.CLIENT_RECEIPT;
   if (type === 'Miscellaneous Expense') type = PAYMENT_TYPES.BUSINESS_EXPENSE;
-
   if (type === PAYMENT_TYPES.CLIENT_RECEIPT) return createClientReceipt_(data);
   if (type === PAYMENT_TYPES.EMPLOYEE_PAYMENT) return createEmployeePayment_(data);
   if (type === PAYMENT_TYPES.BUSINESS_EXPENSE) return createBusinessExpense_(data);
@@ -53,33 +53,52 @@ function createClientReceipt_(data) {
     'Payment Mode': asText_(data.paymentMode),
     'Reference': asText_(data.reference),
     'Status': asText_(data.status) || 'Received',
-    'Notes': asText_(data.notes || data.description)
+    'Notes': asText_(data.notes || data.description),
+    'Allocated Amount': 0,
+    'Remaining Balance': amount
   };
   appendRow_(APP.SHEETS.CLIENT_RECEIPTS, RECEIPT_HEADERS, item);
+  applyReceiptBalanceFormulas_(getCRMSpreadsheet_());
   recordActivity_('Client Receipt', item['Receipt ID'], 'Recorded client receipt of ₹' + amount);
   return serializePayment_(item);
 }
 
 function createEmployeePayment_(data) {
   var employee = asText_(data.employee);
-  if (!employee) throw new Error('Please select an employee.');
+  if (!employee) throw new Error('Please select an employee or partner.');
+  var allowed = (CONFIG.PAYMENT_RECIPIENTS || []).concat(getPaymentOptionsService_().employees || []);
+  if (allowed.length && allowed.indexOf(employee) === -1) throw new Error('Invalid employee or partner.');
   var clientId = asText_(data.clientId);
   if (clientId && !getClientService_(clientId)) throw new Error('Client not found.');
+  var receiptId = asText_(data.receiptId);
+  if (receiptId && !receiptBelongsToClient_(receiptId, clientId)) throw new Error('Selected receipt does not belong to the selected client.');
   var paymentType = asText_(data.paymentType) || 'Other';
   if (CONFIG.EMPLOYEE_PAYMENT_TYPES.indexOf(paymentType) === -1) throw new Error('Invalid employee payment type.');
-  var amount = positiveAmount_(data.amount);
+
   var commissionPercent = data.commissionPercent === '' || data.commissionPercent == null ? '' : Number(data.commissionPercent);
   var commissionBase = data.commissionBaseAmount === '' || data.commissionBaseAmount == null ? '' : Number(data.commissionBaseAmount);
-  if (paymentType === 'Commission' && commissionPercent !== '' && commissionPercent < 0) throw new Error('Commission % cannot be negative.');
+  if (commissionPercent !== '' && (!(commissionPercent >= 0) || commissionPercent > 100)) throw new Error('Commission % must be between 0 and 100.');
+  if (commissionBase !== '' && commissionBase < 0) throw new Error('Commission base amount cannot be negative.');
+
+  var amount;
+  if (paymentType === 'Commission' && commissionPercent !== '' && commissionBase !== '') {
+    amount = Math.round((commissionBase * commissionPercent / 100) * 100) / 100;
+  } else {
+    amount = positiveAmount_(data.amount);
+  }
+  if (receiptId) validateReceiptBalance_(receiptId, amount);
+
   var item = {
     'Employee Payment ID': generateId_(CONFIG.ID_PREFIX.EMPLOYEE_PAYMENT),
     'Employee': employee,
     'Client ID': clientId,
+    'Receipt ID': receiptId,
     'Payment Type': paymentType,
     'Amount': amount,
     'Payment Date': data.paymentDate ? new Date(data.paymentDate) : now_(),
     'Commission %': commissionPercent,
     'Commission Base Amount': commissionBase,
+    'Commission Amount': paymentType === 'Commission' ? amount : '',
     'Paid From': asText_(data.paidFrom || data.paidTo),
     'Payment Mode': asText_(data.paymentMode),
     'Reference': asText_(data.reference),
@@ -87,6 +106,7 @@ function createEmployeePayment_(data) {
     'Notes': asText_(data.notes || data.description)
   };
   appendRow_(APP.SHEETS.EMPLOYEE_PAYMENTS, EMPLOYEE_HEADERS, item);
+  applyReceiptBalanceFormulas_(getCRMSpreadsheet_());
   recordActivity_('Employee Payment', item['Employee Payment ID'], 'Recorded ' + paymentType + ' payment of ₹' + amount + ' to ' + employee);
   return serializePayment_(item);
 }
@@ -94,14 +114,18 @@ function createEmployeePayment_(data) {
 function createBusinessExpense_(data) {
   var clientId = asText_(data.clientId);
   if (clientId && !getClientService_(clientId)) throw new Error('Client not found.');
+  var receiptId = asText_(data.receiptId);
+  if (receiptId && !receiptBelongsToClient_(receiptId, clientId)) throw new Error('Selected receipt does not belong to the selected client.');
   var category = asText_(data.expenseCategory) || 'Other';
   var relatedTo = asText_(data.relatedTo) || 'Other';
   if (CONFIG.EXPENSE_CATEGORIES.indexOf(category) === -1) throw new Error('Invalid expense category.');
   if (CONFIG.EXPENSE_CONTEXTS.indexOf(relatedTo) === -1) throw new Error('Invalid expense context.');
   var amount = positiveAmount_(data.amount);
+  if (receiptId) validateReceiptBalance_(receiptId, amount);
   var item = {
     'Expense ID': generateId_(CONFIG.ID_PREFIX.BUSINESS_EXPENSE),
     'Client ID': clientId,
+    'Receipt ID': receiptId,
     'Expense Category': category,
     'Related To': relatedTo,
     'Amount': amount,
@@ -113,8 +137,29 @@ function createBusinessExpense_(data) {
     'Status': asText_(data.status) || 'Paid'
   };
   appendRow_(APP.SHEETS.BUSINESS_EXPENSES, EXPENSE_HEADERS, item);
+  applyReceiptBalanceFormulas_(getCRMSpreadsheet_());
   recordActivity_('Business Expense', item['Expense ID'], 'Recorded ' + category + ' expense of ₹' + amount);
   return serializePayment_(item);
+}
+
+function receiptBelongsToClient_(receiptId, clientId) {
+  var s = getCRMSpreadsheet_().getSheetByName(APP.SHEETS.CLIENT_RECEIPTS);
+  if (!s || s.getLastRow() < 2) return false;
+  var v = s.getDataRange().getValues(), h = v.shift(), idIdx=h.indexOf('Receipt ID'), clientIdx=h.indexOf('Client ID');
+  for (var i=0;i<v.length;i++) if (String(v[i][idIdx])===String(receiptId)) return !clientId || String(v[i][clientIdx])===String(clientId);
+  return false;
+}
+
+function validateReceiptBalance_(receiptId, amount) {
+  var s = getCRMSpreadsheet_().getSheetByName(APP.SHEETS.CLIENT_RECEIPTS);
+  if (!s || s.getLastRow() < 2) throw new Error('Receipt not found.');
+  var v=s.getDataRange().getValues(),h=v.shift(),idIdx=h.indexOf('Receipt ID'),amountIdx=h.indexOf('Amount'),allocIdx=h.indexOf('Allocated Amount');
+  for(var i=0;i<v.length;i++) if(String(v[i][idIdx])===String(receiptId)) {
+    var allocated=allocIdx>=0?Number(v[i][allocIdx]||0):0, total=Number(v[i][amountIdx]||0), remaining=total-allocated;
+    if(amount>remaining+0.001) throw new Error('This payment exceeds the remaining balance of receipt ' + receiptId + ' (₹' + remaining.toFixed(2) + ').');
+    return true;
+  }
+  throw new Error('Receipt not found.');
 }
 
 function positiveAmount_(value) {
@@ -149,9 +194,9 @@ function readPaymentSheet_(sheetName, headers, type, clientId) {
 
 function getPaymentOptionsService_() {
   var users = getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);
-  var employees = [];
+  var employees = (CONFIG.PAYMENT_RECIPIENTS || []).slice();
   if (users && users.getLastRow() >= 2) {
-    employees = users.getRange(2,2,users.getLastRow()-1,1).getValues().map(function(r){return String(r[0]||'').trim();}).filter(Boolean);
+    users.getRange(2,2,users.getLastRow()-1,1).getValues().forEach(function(r){var n=String(r[0]||'').trim();if(n&&employees.indexOf(n)<0)employees.push(n);});
   }
   return {
     types: [PAYMENT_TYPES.CLIENT_RECEIPT, PAYMENT_TYPES.EMPLOYEE_PAYMENT, PAYMENT_TYPES.BUSINESS_EXPENSE],
@@ -160,8 +205,16 @@ function getPaymentOptionsService_() {
     employeePaymentTypes: CONFIG.EMPLOYEE_PAYMENT_TYPES,
     expenseCategories: CONFIG.EXPENSE_CATEGORIES,
     expenseContexts: CONFIG.EXPENSE_CONTEXTS,
-    paymentModes: CONFIG.PAYMENT_MODES
+    paymentModes: CONFIG.PAYMENT_MODES,
+    commissionEnabled: true
   };
+}
+
+function getReceiptOptionsService_() {
+  var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.CLIENT_RECEIPTS);
+  if(!s||s.getLastRow()<2)return [];
+  var v=s.getDataRange().getValues(),h=v.shift(),id=h.indexOf('Receipt ID'),client=h.indexOf('Client ID'),amount=h.indexOf('Amount'),remain=h.indexOf('Remaining Balance');
+  return v.filter(function(r){return r[id]&&Number(r[remain]||0)>0;}).map(function(r){return {receiptId:String(r[id]),clientId:String(r[client]),amount:Number(r[amount]||0),remaining:Number(r[remain]||0)};});
 }
 
 function getClientProfitabilityService_(clientId) {
