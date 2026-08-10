@@ -1,38 +1,24 @@
 /**
  * HYPEMARK CRM v1
- * Single-shell Apps Script entry point.
- * All CRM navigation is handled inside App.html so the web app never
- * needs to switch between separate HTML documents.
+ * Single-shell Apps Script entry point with Google-account authentication and RBAC.
  */
 function doGet(e) {
-  return HtmlService.createTemplateFromFile('App')
-    .evaluate()
-    .setTitle('HYPEMARK CRM')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  var auth = getAuthContextService_();
+  var file = auth.authenticated ? 'App' : 'Login';
+  return HtmlService.createTemplateFromFile(file).evaluate().setTitle(auth.authenticated ? 'HYPEMARK CRM' : 'Sign in | HYPEMARK CRM').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
-
 function include(fileName){return HtmlService.createHtmlOutputFromFile(fileName).getContent();}
-
-function onOpen(){
-  SpreadsheetApp.getUi().createMenu('🚀 HYPEMARK CRM')
-    .addItem('➕ Add Client','showAddClient')
-    .addSeparator()
-    .addItem('⚙ Initialize CRM','initializeCRM')
-    .addToUi();
-}
-
-function showAddClient(){
-  var html=HtmlService.createTemplateFromFile('AddClient').evaluate().setWidth(900).setHeight(700);
-  SpreadsheetApp.getUi().showModalDialog(html,'Add New Client');
-}
-
+function onOpen(){SpreadsheetApp.getUi().createMenu('🚀 HYPEMARK CRM').addItem('➕ Add Client','showAddClient').addSeparator().addItem('⚙ Initialize CRM','initializeCRM').addToUi();}
+function showAddClient(){requirePermission_(AUTH_PERMISSIONS.CLIENTS);var html=HtmlService.createTemplateFromFile('AddClient').evaluate().setWidth(900).setHeight(700);SpreadsheetApp.getUi().showModalDialog(html,'Add New Client');}
 function initializeCRM(){var url=initializeCRMService_();cleanupDefaultSheet_();return url;}
 function cleanupDefaultSheet_(){var ss=getCRMSpreadsheet_();var sheet=ss.getSheetByName('Sheet1');if(sheet&&ss.getSheets().length>1&&sheet.getLastRow()===0&&sheet.getLastColumn()===0)ss.deleteSheet(sheet);}
-function createClient(data){return createClientService_(data);} function getClients(){return getClientsService_();} function getClient(id){return getClientService_(id);} function updateClient(id,data){return updateClientService_(id,data);}
-function createEngagement(data){return createEngagementService_(data);} function getEngagements(clientId){return getEngagementsService_(clientId);}
-function createProject(data){return createProjectService_(data);} function getProjects(clientId){return getProjectsService_(clientId);} function getProject(id){return getProjectService_(id);}
-function createDeliverable(data){return createDeliverableService_(data);} function getDeliverables(projectId){return getDeliverablesService_(projectId);} function updateDeliverableStatus(id,status){return updateDeliverableStatusService_(id,status);}
-function createContent(data){return createContentService_(data);} function getContent(deliverableId){return getContentService_(deliverableId);}
-function createPayment(data){return createPaymentService_(data);} function getPayments(clientId,type){return getPaymentsService_(clientId,type);} function getPaymentOptions(){return getPaymentOptionsService_();} function getReceiptOptions(){return getReceiptOptionsService_();}
-function getClientProfitability(clientId){return getClientProfitabilityService_(clientId);} function getProfitabilitySummary(){return getProfitabilitySummaryService_();}
-function getActivities(){return getActivitiesService_();} function getDashboard(){return getDashboardService_();}
+function createClient(data){requirePermission_(AUTH_PERMISSIONS.CLIENTS);return createClientService_(data);} function getClients(){requirePermission_(AUTH_PERMISSIONS.CLIENTS);return getClientsService_();} function getClient(id){requirePermission_(AUTH_PERMISSIONS.CLIENTS);return getClientService_(id);} function updateClient(id,data){requirePermission_(AUTH_PERMISSIONS.CLIENTS);return updateClientService_(id,data);}
+function createEngagement(data){requirePermission_(AUTH_PERMISSIONS.CLIENTS);return createEngagementService_(data);} function getEngagements(clientId){requirePermission_(AUTH_PERMISSIONS.CLIENTS);return getEngagementsService_(clientId);}
+function createProject(data){requirePermission_(AUTH_PERMISSIONS.PROJECTS);return createProjectService_(data);} function getProjects(clientId){requirePermission_(AUTH_PERMISSIONS.PROJECTS);return getProjectsService_(clientId);} function getProject(id){requirePermission_(AUTH_PERMISSIONS.PROJECTS);return getProjectService_(id);}
+function createDeliverable(data){requirePermission_(AUTH_PERMISSIONS.DELIVERABLES);return createDeliverableService_(data);} function getDeliverables(projectId){requirePermission_(AUTH_PERMISSIONS.DELIVERABLES);return getDeliverablesService_(projectId);} function updateDeliverableStatus(id,status){requirePermission_(AUTH_PERMISSIONS.DELIVERABLES);return updateDeliverableStatusService_(id,status);}
+function createContent(data){requirePermission_(AUTH_PERMISSIONS.CONTENT);return createContentService_(data);} function getContent(deliverableId){requirePermission_(AUTH_PERMISSIONS.CONTENT);return getContentService_(deliverableId);}
+function createPayment(data){requirePermission_(AUTH_PERMISSIONS.FINANCE_ALL);return createPaymentService_(data);} function getPayments(clientId,type){var ctx=requireAuth_();if(ctx.permissions.indexOf(AUTH_PERMISSIONS.FINANCE_ALL)<0&&ctx.permissions.indexOf(AUTH_PERMISSIONS.FINANCE_OWN)<0)throw new Error('You do not have permission to access payments.');if(ctx.role===AUTH_ROLES.EMPLOYEE)return getPaymentsForUser_(ctx,clientId,type);return getPaymentsService_(clientId,type);} function getPaymentOptions(){var ctx=requireAuth_();if(ctx.permissions.indexOf(AUTH_PERMISSIONS.FINANCE_ALL)<0&&ctx.permissions.indexOf(AUTH_PERMISSIONS.FINANCE_OWN)<0)throw new Error('You do not have permission to access payment options.');return getPaymentOptionsService_();} function getReceiptOptions(){requirePermission_(AUTH_PERMISSIONS.FINANCE_ALL);return getReceiptOptionsService_();}
+function getClientProfitability(clientId){requirePermission_(AUTH_PERMISSIONS.PROFITABILITY);return getClientProfitabilityService_(clientId);} function getProfitabilitySummary(){requirePermission_(AUTH_PERMISSIONS.PROFITABILITY);return getProfitabilitySummaryService_();}
+function getActivities(){var ctx=requireAuth_();if(ctx.permissions.indexOf(AUTH_PERMISSIONS.ACTIVITIES_ALL)<0&&ctx.permissions.indexOf(AUTH_PERMISSIONS.ACTIVITIES_OWN)<0)throw new Error('You do not have permission to access activities.');return ctx.permissions.indexOf(AUTH_PERMISSIONS.ACTIVITIES_ALL)>=0?getActivitiesService_():getActivitiesForUser_(ctx);} function getDashboard(){requirePermission_(AUTH_PERMISSIONS.DASHBOARD);return getDashboardService_();}
+function getPaymentsForUser_(ctx,clientId,type){return getPaymentsService_(clientId,type).filter(function(p){return p.Type!=='Employee Payment'||String(p.Employee||'').trim().toLowerCase()===String(ctx.name||'').trim().toLowerCase();});}
+function getActivitiesForUser_(ctx){return getActivitiesService_().filter(function(a){return String(a.User||'').trim().toLowerCase()===String(ctx.name||'').trim().toLowerCase();});}
