@@ -11,10 +11,12 @@ function doGet(e) {
 }
 function injectPremiumTheme_(content){
   var theme=HtmlService.createHtmlOutputFromFile('PremiumTheme').getContent();
-  var style=theme.match(/<style[\\s\\S]*?<\\/style>/i);
-  var script=theme.match(/<script[\\s\\S]*?<\\/script>/i);
-  if(style)content=content.replace(/<\\/head>/i,style[0]+'<\\/head>');
-  if(script)content=content.replace(/<\\/body>/i,script[0]+'<\\/body>');
+  var styleStart=theme.indexOf('<style');
+  var styleEnd=theme.indexOf('</style>');
+  var scriptStart=theme.indexOf('<script');
+  var scriptEnd=theme.indexOf('</script>');
+  if(styleStart>=0&&styleEnd>=0)content=content.replace('</head>',theme.substring(styleStart,styleEnd+8)+'</head>');
+  if(scriptStart>=0&&scriptEnd>=0)content=content.replace('</body>',theme.substring(scriptStart,scriptEnd+9)+'</body>');
   return content;
 }
 function include(fileName){return HtmlService.createHtmlOutputFromFile(fileName).getContent();}
