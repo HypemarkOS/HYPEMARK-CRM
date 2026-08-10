@@ -11,10 +11,11 @@ function doGet(e) {
     var brandFix = HtmlService.createHtmlOutputFromFile('BrandFix').getContent();
     var premiumShell = HtmlService.createHtmlOutputFromFile('PremiumShell').getContent();
     var logoFix = HtmlService.createHtmlOutputFromFile('LogoFix').getContent();
+    var clientsPro = HtmlService.createHtmlOutputFromFile('ClientsPro').getContent();
     var logoData = getHypeMarkLogoDataUri_();
     logoFix = logoFix.replace('__HYPEMARK_LOGO__', logoData);
     var html = output.getContent();
-    html = html.replace('</head>', theme + brandFix + premiumShell + logoFix + '</head>');
+    html = html.replace('</head>', theme + brandFix + premiumShell + logoFix + clientsPro + '</head>');
     output = HtmlService.createHtmlOutput(html);
   }
   return output.setTitle(auth.authenticated ? 'HYPEMARK CRM' : 'Sign in | HYPEMARK CRM')
