@@ -15,9 +15,9 @@ function initializeCRMService_() {
     [APP.SHEETS.DELIVERABLES, ['Deliverable ID','Project ID','Type','Quantity','Status']],
     [APP.SHEETS.CONTENT_BANK, ['Content ID','Deliverable ID','Title','Status','Assigned To','Publish Date']],
     [APP.SHEETS.ACTIVITIES, ['Activity ID','Entity','Entity ID','Action','User','Date Time']],
-    [APP.SHEETS.CLIENT_RECEIPTS, ['Receipt ID','Client ID','Amount','Payment Date','Received By','Payment Mode','Reference','Status','Notes']],
-    [APP.SHEETS.EMPLOYEE_PAYMENTS, ['Employee Payment ID','Employee','Client ID','Payment Type','Amount','Payment Date','Commission %','Commission Base Amount','Paid From','Payment Mode','Reference','Status','Notes']],
-    [APP.SHEETS.BUSINESS_EXPENSES, ['Expense ID','Client ID','Expense Category','Related To','Amount','Expense Date','Paid To','Payment Mode','Reference','Description','Status']],
+    [APP.SHEETS.CLIENT_RECEIPTS, ['Receipt ID','Client ID','Amount','Payment Date','Received By','Payment Mode','Reference','Status','Notes','Allocated Amount','Remaining Balance']],
+    [APP.SHEETS.EMPLOYEE_PAYMENTS, ['Employee Payment ID','Employee','Client ID','Receipt ID','Payment Type','Amount','Payment Date','Commission %','Commission Base Amount','Commission Amount','Paid From','Payment Mode','Reference','Status','Notes']],
+    [APP.SHEETS.BUSINESS_EXPENSES, ['Expense ID','Client ID','Receipt ID','Expense Category','Related To','Amount','Expense Date','Paid To','Payment Mode','Reference','Description','Status']],
     [APP.SHEETS.USERS, ['User ID','Name','Role','Email','Status']],
     [APP.SHEETS.SETTINGS, ['Key','Value']]
   ];
@@ -30,6 +30,7 @@ function initializeCRMService_() {
 
   migrateLegacyPayments_(ss);
   applyFinanceValidations_(ss);
+  applyReceiptBalanceFormulas_(ss);
   ensureCRMTriggers_(ss);
 
   var defaultSheet = ss.getSheetByName('Sheet1');
@@ -64,33 +65,53 @@ function styleSheet_(sheet) {
 function applyFinanceValidations_(ss) {
   var clients = ss.getSheetByName(APP.SHEETS.CLIENTS);
   var users = ss.getSheetByName(APP.SHEETS.USERS);
+  var receipts = ss.getSheetByName(APP.SHEETS.CLIENT_RECEIPTS);
   var clientRule = clients ? SpreadsheetApp.newDataValidation().requireValueInRange(clients.getRange('A2:A'), true).setAllowInvalid(false).build() : null;
-  var employeeRule = users ? SpreadsheetApp.newDataValidation().requireValueInRange(users.getRange('B2:B'), true).setAllowInvalid(false).build() : null;
+  var employeeValues = (CONFIG.PAYMENT_RECIPIENTS || []).slice();
+  if (users && users.getLastRow() >= 2) {
+    users.getRange(2,2,users.getLastRow()-1,1).getValues().forEach(function(r){var n=String(r[0]||'').trim();if(n&&employeeValues.indexOf(n)<0)employeeValues.push(n);});
+  }
+  var employeeRule = SpreadsheetApp.newDataValidation().requireValueInList(employeeValues, true).setAllowInvalid(false).build();
+  var receiptRule = receipts ? SpreadsheetApp.newDataValidation().requireValueInRange(receipts.getRange('A2:A'), true).setAllowInvalid(false).build() : null;
   var accountRule = SpreadsheetApp.newDataValidation().requireValueInList(CONFIG.PAYMENT_ACCOUNTS, true).setAllowInvalid(false).build();
   var modeRule = SpreadsheetApp.newDataValidation().requireValueInList(CONFIG.PAYMENT_MODES, true).setAllowInvalid(false).build();
   var employeeTypeRule = SpreadsheetApp.newDataValidation().requireValueInList(CONFIG.EMPLOYEE_PAYMENT_TYPES, true).setAllowInvalid(false).build();
   var categoryRule = SpreadsheetApp.newDataValidation().requireValueInList(CONFIG.EXPENSE_CATEGORIES, true).setAllowInvalid(false).build();
   var contextRule = SpreadsheetApp.newDataValidation().requireValueInList(CONFIG.EXPENSE_CONTEXTS, true).setAllowInvalid(false).build();
 
-  var receipts = ss.getSheetByName(APP.SHEETS.CLIENT_RECEIPTS);
-  if (receipts && clientRule) receipts.getRange('B2:B').setDataValidation(clientRule);
-  if (receipts) { receipts.getRange('E2:E').setDataValidation(accountRule); receipts.getRange('F2:F').setDataValidation(modeRule); }
+  if (receipts) { if (clientRule) receipts.getRange('B2:B').setDataValidation(clientRule); receipts.getRange('E2:E').setDataValidation(accountRule); receipts.getRange('F2:F').setDataValidation(modeRule); }
 
   var employees = ss.getSheetByName(APP.SHEETS.EMPLOYEE_PAYMENTS);
   if (employees) {
-    if (employeeRule) employees.getRange('B2:B').setDataValidation(employeeRule);
+    employees.getRange('B2:B').setDataValidation(employeeRule);
     if (clientRule) employees.getRange('C2:C').setDataValidation(clientRule);
-    employees.getRange('D2:D').setDataValidation(employeeTypeRule);
-    employees.getRange('I2:I').setDataValidation(accountRule);
-    employees.getRange('J2:J').setDataValidation(modeRule);
+    if (receiptRule) employees.getRange('D2:D').setDataValidation(receiptRule);
+    employees.getRange('E2:E').setDataValidation(employeeTypeRule);
+    employees.getRange('K2:K').setDataValidation(accountRule);
+    employees.getRange('L2:L').setDataValidation(modeRule);
   }
 
   var expenses = ss.getSheetByName(APP.SHEETS.BUSINESS_EXPENSES);
   if (expenses) {
     if (clientRule) expenses.getRange('B2:B').setDataValidation(clientRule);
-    expenses.getRange('C2:C').setDataValidation(categoryRule);
-    expenses.getRange('D2:D').setDataValidation(contextRule);
-    expenses.getRange('H2:H').setDataValidation(modeRule);
+    if (receiptRule) expenses.getRange('C2:C').setDataValidation(receiptRule);
+    expenses.getRange('D2:D').setDataValidation(categoryRule);
+    expenses.getRange('E2:E').setDataValidation(contextRule);
+    expenses.getRange('I2:I').setDataValidation(modeRule);
+  }
+}
+
+function applyReceiptBalanceFormulas_(ss) {
+  var receipts = ss.getSheetByName(APP.SHEETS.CLIENT_RECEIPTS);
+  if (!receipts) return;
+  var lastRow = Math.max(receipts.getLastRow(), 2);
+  receipts.getRange('J1:K1').setValues([['Allocated Amount','Remaining Balance']]);
+  if (lastRow >= 2) {
+    receipts.getRange('J2').setFormula('=IF(A2="","",SUMIF(EmployeePayments!D:D,A2,EmployeePayments!F:F)+SUMIF(BusinessExpenses!C:C,A2,BusinessExpenses!F:F))');
+    receipts.getRange('K2').setFormula('=IF(A2="","",C2-J2)');
+    if (lastRow > 2) { receipts.getRange('J2:K2').copyTo(receipts.getRange(2,10,lastRow-1,2)); }
+    receipts.getRange('C2:C').setNumberFormat('₹#,##0.00');
+    receipts.getRange('J2:K').setNumberFormat('₹#,##0.00');
   }
 }
 
@@ -123,11 +144,11 @@ function migrateLegacyPayments_(ss) {
     var status = index('Status') >= 0 ? r[index('Status')] : 'Completed';
 
     if (type === 'Employee Payment') {
-      employeeSheet.appendRow([id || generateId_(CONFIG.ID_PREFIX.EMPLOYEE_PAYMENT), employee, client, 'Other', amount, date, '', '', paidTo, '', '', status, description]);
-    } else if (type === 'Miscellaneous Expense') {
-      expenseSheet.appendRow([id || generateId_(CONFIG.ID_PREFIX.BUSINESS_EXPENSE), client, category || 'Other', related || 'Other', amount, date, paidTo, '', '', description, status]);
+      employeeSheet.appendRow([id || generateId_(CONFIG.ID_PREFIX.EMPLOYEE_PAYMENT), employee || 'Ajay', client, '', 'Other', amount, date, '', '', '', paidTo, '', '', status, description]);
+    } else if (type === 'Miscellaneous Expense' || type === 'Business Expense') {
+      expenseSheet.appendRow([id || generateId_(CONFIG.ID_PREFIX.BUSINESS_EXPENSE), client, '', category || 'Other', related || 'Other', amount, date, paidTo, '', '', description, status]);
     } else {
-      receiptSheet.appendRow([id || generateId_(CONFIG.ID_PREFIX.CLIENT_RECEIPT), client, amount, date, paidTo, '', '', status || 'Received', description]);
+      receiptSheet.appendRow([id || generateId_(CONFIG.ID_PREFIX.CLIENT_RECEIPT), client, amount, date, paidTo, '', '', status || 'Received', description, '', '']);
     }
   });
 
