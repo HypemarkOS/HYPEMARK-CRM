@@ -9,8 +9,9 @@ function doGet(e) {
   if (auth.authenticated) {
     var theme = HtmlService.createHtmlOutputFromFile('PremiumTheme').getContent();
     var brandFix = HtmlService.createHtmlOutputFromFile('BrandFix').getContent();
+    var premiumShell = HtmlService.createHtmlOutputFromFile('PremiumShell').getContent();
     var html = output.getContent();
-    html = html.replace('</head>', theme + brandFix + '</head>');
+    html = html.replace('</head>', theme + brandFix + premiumShell + '</head>');
     output = HtmlService.createHtmlOutput(html);
   }
   return output.setTitle(auth.authenticated ? 'HYPEMARK CRM' : 'Sign in | HYPEMARK CRM')
