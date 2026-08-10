@@ -13,7 +13,10 @@ function injectPremiumTheme_(content){
   var theme=HtmlService.createHtmlOutputFromFile('PremiumTheme').getContent();
   var styleStart=theme.indexOf('<style');
   var styleEnd=theme.indexOf('</style>');
-  if(styleStart>=0&&styleEnd>=0)content=content.replace('</head>',theme.substring(styleStart,styleEnd+8)+'</head>');
+  if(styleStart>=0&&styleEnd>=0){
+    var brandFix='<style id="hm-brand-fix">.brand{font-size:0!important;position:relative!important}.brand img,.brand .hm-logo{display:none!important}.brand:before{content:"HYPEMARK"!important;position:relative!important;z-index:3!important;display:block!important;width:auto!important;height:auto!important;bottom:auto!important;left:auto!important;right:auto!important;top:auto!important;border:0!important;background:none!important;filter:none!important;box-shadow:none!important;color:#fff!important;font-family:Manrope,DM Sans,Arial,sans-serif!important;font-size:22px!important;font-weight:800!important;letter-spacing:-.4px!important}.brand:after{content:""!important;position:absolute!important;left:22px!important;right:22px!important;bottom:14px!important;top:auto!important;width:auto!important;height:1px!important;border:0!important;border-radius:0!important;background:linear-gradient(90deg,transparent,rgba(215,25,32,.45),transparent)!important;pointer-events:none!important}.brand{background:none!important}</style>';
+    content=content.replace('</head>',theme.substring(styleStart,styleEnd+8)+brandFix+'</head>');
+  }
   return content;
 }
 function include(fileName){return HtmlService.createHtmlOutputFromFile(fileName).getContent();}
