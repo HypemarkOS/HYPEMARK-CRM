@@ -12,6 +12,6 @@ function createEngagement(data){return createEngagementService_(data);} function
 function createProject(data){return createProjectService_(data);} function getProjects(clientId){return getProjectsService_(clientId);} function getProject(id){return getProjectService_(id);}
 function createDeliverable(data){return createDeliverableService_(data);} function getDeliverables(projectId){return getDeliverablesService_(projectId);} function updateDeliverableStatus(id,status){return updateDeliverableStatusService_(id,status);}
 function createContent(data){return createContentService_(data);} function getContent(deliverableId){return getContentService_(deliverableId);}
-function createPayment(data){return createPaymentService_(data);} function getPayments(clientId,type){return getPaymentsService_(clientId,type);} function getPaymentOptions(){return getPaymentOptionsService_();}
+function createPayment(data){return createPaymentService_(data);} function getPayments(clientId,type){return getPaymentsService_(clientId,type);} function getPaymentOptions(){return getPaymentOptionsService_();} function getReceiptOptions(){return getReceiptOptionsService_();}
 function getClientProfitability(clientId){return getClientProfitabilityService_(clientId);} function getProfitabilitySummary(){return getProfitabilitySummaryService_();}
 function getActivities(){return getActivitiesService_();} function getDashboard(){return getDashboardService_();}
