@@ -6,15 +6,14 @@ function doGet(e) {
   var auth = getAuthContextService_();
   var file = auth.authenticated ? 'App' : 'Login';
   var output = HtmlService.createTemplateFromFile(file).evaluate();
-  if (auth.authenticated) output = HtmlService.createHtmlOutput(injectPremiumTheme_(output.getContent()));
-  return output.setTitle(auth.authenticated ? 'HYPEMARK CRM' : 'Sign in | HYPEMARK CRM').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
-function injectPremiumTheme_(content){
-  var theme=HtmlService.createHtmlOutputFromFile('PremiumTheme').getContent();
-  var styleStart=theme.indexOf('<style');
-  var styleEnd=theme.indexOf('</style>');
-  if(styleStart>=0&&styleEnd>=0) content=content.replace('</head>',theme.substring(styleStart,styleEnd+8)+'</head>');
-  return content;
+  if (auth.authenticated) {
+    var theme = HtmlService.createHtmlOutputFromFile('PremiumTheme').getContent();
+    var html = output.getContent();
+    html = html.replace('</head>', theme + '</head>');
+    output = HtmlService.createHtmlOutput(html);
+  }
+  return output.setTitle(auth.authenticated ? 'HYPEMARK CRM' : 'Sign in | HYPEMARK CRM')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 function include(fileName){return HtmlService.createHtmlOutputFromFile(fileName).getContent();}
 function onOpen(){SpreadsheetApp.getUi().createMenu('🚀 HYPEMARK CRM').addItem('➕ Add Client','showAddClient').addSeparator().addItem('⚙ Initialize CRM','initializeCRM').addToUi();}
