@@ -18,5 +18,11 @@ const CONFIG = {
   EMPLOYEE_PAYMENT_TYPES: ['Salary', 'Commission', 'Freelance', 'Reimbursement', 'Advance', 'Other'],
   EXPENSE_CATEGORIES: ['Petrol', 'Camera Rental', 'Transport', 'Food', 'Accommodation', 'Equipment', 'Office', 'Other'],
   EXPENSE_CONTEXTS: ['Client Shoot', 'Client Meeting', 'Client Travel', 'Office', 'General Business', 'Other'],
-  PAYMENT_MODES: ['Cash', 'UPI', 'Bank Transfer', 'Card', 'Other']
+  PAYMENT_MODES: ['Cash', 'UPI', 'Bank Transfer', 'Card', 'Other'],
+  STATUS_OPTIONS: ['Active','Inactive','Pending','In Progress','Review','Completed','Delayed','Overdue','Blocked','Closed','Cancelled'],
+  PRIORITY_OPTIONS: ['Low','Medium','High','Critical'],
+  PAID_BY_OPTIONS: ['Ajay','Vineeth'],
+  STATUS_COLORS: {
+    GREEN: '#d9ead3', ORANGE: '#fce5cd', RED: '#f4cccc', GREY: '#e6e6e6', BLUE: '#cfe2f3', TEXT: '#202124'
+  }
 };
