@@ -1,22 +1,33 @@
 /**
  * HYPEMARK CRM v1
- * Public Apps Script entry points.
+ * Single-shell Apps Script entry point.
+ * All CRM navigation is handled inside App.html so the web app never
+ * needs to switch between separate HTML documents.
  */
 function doGet(e) {
-  var page = e && e.parameter ? String(e.parameter.page || '') : '';
-  var file = 'Dashboard';
-  var title = 'Dashboard | HYPEMARK CRM';
-  if (page === 'clients') { file = 'Index'; title = 'Clients | HYPEMARK CRM'; }
-  else if (page === 'add') { file = 'AddClient'; title = 'Add Client | HYPEMARK CRM'; }
-  else if (page === 'dashboard' || !page) { file = 'Dashboard'; title = 'Dashboard | HYPEMARK CRM'; }
-  else if (page === 'payments') { file = 'Payments'; title = 'Payments | HYPEMARK CRM'; }
-  return HtmlService.createTemplateFromFile(file).evaluate().setTitle(title).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  return HtmlService.createTemplateFromFile('App')
+    .evaluate()
+    .setTitle('HYPEMARK CRM')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
+
 function include(fileName){return HtmlService.createHtmlOutputFromFile(fileName).getContent();}
-function onOpen(){SpreadsheetApp.getUi().createMenu('🚀 HYPEMARK CRM').addItem('➕ Add Client','showAddClient').addSeparator().addItem('⚙ Initialize CRM','initializeCRM').addToUi();}
-function showAddClient(){var html=HtmlService.createTemplateFromFile('AddClient').evaluate().setWidth(900).setHeight(700);SpreadsheetApp.getUi().showModalDialog(html,'Add New Client');}
-function initializeCRM(){var url=initializeCRMService_(); cleanupDefaultSheet_(); return url;}
-function cleanupDefaultSheet_(){var ss=getCRMSpreadsheet_(); var sheet=ss.getSheetByName('Sheet1'); if(sheet && ss.getSheets().length>1 && sheet.getLastRow()===0 && sheet.getLastColumn()===0){ss.deleteSheet(sheet);}}
+
+function onOpen(){
+  SpreadsheetApp.getUi().createMenu('🚀 HYPEMARK CRM')
+    .addItem('➕ Add Client','showAddClient')
+    .addSeparator()
+    .addItem('⚙ Initialize CRM','initializeCRM')
+    .addToUi();
+}
+
+function showAddClient(){
+  var html=HtmlService.createTemplateFromFile('AddClient').evaluate().setWidth(900).setHeight(700);
+  SpreadsheetApp.getUi().showModalDialog(html,'Add New Client');
+}
+
+function initializeCRM(){var url=initializeCRMService_();cleanupDefaultSheet_();return url;}
+function cleanupDefaultSheet_(){var ss=getCRMSpreadsheet_();var sheet=ss.getSheetByName('Sheet1');if(sheet&&ss.getSheets().length>1&&sheet.getLastRow()===0&&sheet.getLastColumn()===0)ss.deleteSheet(sheet);}
 function createClient(data){return createClientService_(data);} function getClients(){return getClientsService_();} function getClient(id){return getClientService_(id);} function updateClient(id,data){return updateClientService_(id,data);}
 function createEngagement(data){return createEngagementService_(data);} function getEngagements(clientId){return getEngagementsService_(clientId);}
 function createProject(data){return createProjectService_(data);} function getProjects(clientId){return getProjectsService_(clientId);} function getProject(id){return getProjectService_(id);}
