@@ -3,124 +3,27 @@
  * Authentication uses the Google account identity available to Apps Script.
  * No passwords are stored in the CRM.
  */
-var AUTH_ROLES = {
-  ADMIN: 'Admin',
-  MANAGER: 'Manager',
-  EMPLOYEE: 'Employee'
-};
-
-var AUTH_PERMISSIONS = {
-  DASHBOARD: 'dashboard',
-  CLIENTS: 'clients',
-  PROJECTS: 'projects',
-  DELIVERABLES: 'deliverables',
-  CONTENT: 'content',
-  FINANCE_ALL: 'finance_all',
-  FINANCE_OWN: 'finance_own',
-  PROFITABILITY: 'profitability',
-  ACTIVITIES_ALL: 'activities_all',
-  ACTIVITIES_OWN: 'activities_own',
-  USERS: 'users',
-  SETTINGS: 'settings'
-};
-
+var AUTH_ROLES = { ADMIN:'Admin', PARTNER:'Partner', MANAGER:'Manager', EMPLOYEE:'Employee' };
+var AUTH_PERMISSIONS = { DASHBOARD:'dashboard', CLIENTS:'clients', PROJECTS:'projects', DELIVERABLES:'deliverables', CONTENT:'content', FINANCE_ALL:'finance_all', FINANCE_OWN:'finance_own', PROFITABILITY:'profitability', ACTIVITIES_ALL:'activities_all', ACTIVITIES_OWN:'activities_own', USERS:'users', SETTINGS:'settings' };
 var ROLE_PERMISSIONS = {};
-ROLE_PERMISSIONS[AUTH_ROLES.ADMIN] = Object.keys(AUTH_PERMISSIONS).map(function(k){ return AUTH_PERMISSIONS[k]; });
-ROLE_PERMISSIONS[AUTH_ROLES.MANAGER] = [
-  AUTH_PERMISSIONS.DASHBOARD, AUTH_PERMISSIONS.CLIENTS, AUTH_PERMISSIONS.PROJECTS,
-  AUTH_PERMISSIONS.DELIVERABLES, AUTH_PERMISSIONS.CONTENT, AUTH_PERMISSIONS.ACTIVITIES_ALL
-];
-ROLE_PERMISSIONS[AUTH_ROLES.EMPLOYEE] = [
-  AUTH_PERMISSIONS.DASHBOARD, AUTH_PERMISSIONS.PROJECTS, AUTH_PERMISSIONS.DELIVERABLES,
-  AUTH_PERMISSIONS.CONTENT, AUTH_PERMISSIONS.FINANCE_OWN, AUTH_PERMISSIONS.ACTIVITIES_OWN
-];
-
-function getCurrentUserEmail_() {
-  var email = '';
-  try { email = String(Session.getActiveUser().getEmail() || '').trim().toLowerCase(); } catch (e) {}
-  return email;
+ROLE_PERMISSIONS[AUTH_ROLES.ADMIN] = Object.keys(AUTH_PERMISSIONS).map(function(k){return AUTH_PERMISSIONS[k];});
+ROLE_PERMISSIONS[AUTH_ROLES.PARTNER] = ROLE_PERMISSIONS[AUTH_ROLES.ADMIN].slice();
+ROLE_PERMISSIONS[AUTH_ROLES.MANAGER] = [AUTH_PERMISSIONS.DASHBOARD,AUTH_PERMISSIONS.CLIENTS,AUTH_PERMISSIONS.PROJECTS,AUTH_PERMISSIONS.DELIVERABLES,AUTH_PERMISSIONS.CONTENT,AUTH_PERMISSIONS.ACTIVITIES_ALL];
+ROLE_PERMISSIONS[AUTH_ROLES.EMPLOYEE] = [AUTH_PERMISSIONS.DASHBOARD,AUTH_PERMISSIONS.PROJECTS,AUTH_PERMISSIONS.DELIVERABLES,AUTH_PERMISSIONS.CONTENT,AUTH_PERMISSIONS.FINANCE_OWN,AUTH_PERMISSIONS.ACTIVITIES_OWN];
+function getCurrentUserEmail_(){var email='';try{email=String(Session.getActiveUser().getEmail()||'').trim().toLowerCase();}catch(e){}return email;}
+function getAuthContextService_(){
+  var email=getCurrentUserEmail_(), users=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS), rows=users&&users.getLastRow()>=2?users.getDataRange().getValues():[];
+  if(rows.length)rows.shift();
+  if(email&&rows.length===0){var id=generateId_('USR');users.appendRow([id,email.split('@')[0],AUTH_ROLES.ADMIN,email,'Active']);rows=[[id,email.split('@')[0],AUTH_ROLES.ADMIN,email,'Active']];}
+  var found=null;rows.forEach(function(r){if(String(r[3]||'').trim().toLowerCase()===email)found={userId:String(r[0]||''),name:String(r[1]||''),role:String(r[2]||''),email:email,status:String(r[4]||'')};});
+  if(!email)return{authenticated:false,reason:'identity_unavailable',email:'',name:'',role:'',permissions:[]};
+  if(!found)return{authenticated:false,reason:'not_registered',email:email,name:'',role:'',permissions:[]};
+  if(found.status!=='Active')return{authenticated:false,reason:'inactive',email:email,name:found.name,role:found.role,permissions:[]};
+  return{authenticated:true,reason:'ok',userId:found.userId,name:found.name,role:found.role,email:found.email,status:found.status,permissions:ROLE_PERMISSIONS[found.role]||[]};
 }
-
-function getAuthContextService_() {
-  var email = getCurrentUserEmail_();
-  var users = getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);
-  var rows = users && users.getLastRow() >= 2 ? users.getDataRange().getValues() : [];
-  if (rows.length) rows.shift();
-
-  // First authenticated Google account becomes the initial Admin.
-  if (email && rows.length === 0) {
-    var id = generateId_('USR');
-    users.appendRow([id, email.split('@')[0], AUTH_ROLES.ADMIN, email, 'Active']);
-    rows = [[id, email.split('@')[0], AUTH_ROLES.ADMIN, email, 'Active']];
-  }
-
-  var found = null;
-  rows.forEach(function(r) {
-    if (String(r[3] || '').trim().toLowerCase() === email) {
-      found = { userId: String(r[0] || ''), name: String(r[1] || ''), role: String(r[2] || ''), email: email, status: String(r[4] || '') };
-    }
-  });
-
-  if (!email) {
-    return { authenticated: false, reason: 'identity_unavailable', email: '', name: '', role: '', permissions: [] };
-  }
-  if (!found) {
-    return { authenticated: false, reason: 'not_registered', email: email, name: '', role: '', permissions: [] };
-  }
-  if (found.status !== 'Active') {
-    return { authenticated: false, reason: 'inactive', email: email, name: found.name, role: found.role, permissions: [] };
-  }
-  var permissions = ROLE_PERMISSIONS[found.role] || [];
-  return { authenticated: true, reason: 'ok', userId: found.userId, name: found.name, role: found.role, email: found.email, status: found.status, permissions: permissions };
-}
-
-function requireAuth_() {
-  var ctx = getAuthContextService_();
-  if (!ctx.authenticated) throw new Error('CRM access denied. Please sign in with an authorised Google account.');
-  return ctx;
-}
-
-function requirePermission_(permission) {
-  var ctx = requireAuth_();
-  if (ctx.permissions.indexOf(permission) === -1) throw new Error('You do not have permission to access this section.');
-  return ctx;
-}
-
-function getAuthContext() {
-  return getAuthContextService_();
-}
-
-function getUsers() {
-  requirePermission_(AUTH_PERMISSIONS.USERS);
-  var s = getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);
-  if (!s || s.getLastRow() < 2) return [];
-  var v = s.getDataRange().getValues(), h = v.shift();
-  return v.filter(function(r){ return r.some(function(x){ return x !== ''; }); }).map(function(r){
-    var o = {}; h.forEach(function(k,i){ o[k] = r[i]; }); return o;
-  });
-}
-
-function saveUser(data) {
-  requirePermission_(AUTH_PERMISSIONS.USERS);
-  var email = String(data.email || '').trim().toLowerCase();
-  var name = String(data.name || '').trim();
-  var role = String(data.role || AUTH_ROLES.EMPLOYEE).trim();
-  var status = String(data.status || 'Active').trim();
-  if (!email || !email.includes('@')) throw new Error('A valid Google account email is required.');
-  if (Object.keys(ROLE_PERMISSIONS).indexOf(role) === -1) throw new Error('Invalid role.');
-  var s = getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);
-  var values = s.getDataRange().getValues(), h = values.shift(), emailIdx = h.indexOf('Email');
-  for (var i=0;i<values.length;i++) if (String(values[i][emailIdx] || '').toLowerCase() === email) {
-    s.getRange(i+2,2,1,4).setValues([[name,role,email,status]]);
-    return {updated:true,email:email};
-  }
-  s.appendRow([generateId_('USR'), name || email.split('@')[0], role, email, status]);
-  return {created:true,email:email};
-}
-
-function updateUserStatus(userId, status) {
-  requirePermission_(AUTH_PERMISSIONS.USERS);
-  var s = getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS), values = s.getDataRange().getValues(), h = values.shift(), idIdx=h.indexOf('User ID'), statusIdx=h.indexOf('Status');
-  for (var i=0;i<values.length;i++) if (String(values[i][idIdx])===String(userId)) { s.getRange(i+2,statusIdx+1).setValue(status); return true; }
-  throw new Error('User not found.');
-}
+function requireAuth_(){var ctx=getAuthContextService_();if(!ctx.authenticated)throw new Error('CRM access denied. Please sign in with an authorised Google account.');return ctx;}
+function requirePermission_(permission){var ctx=requireAuth_();if(ctx.permissions.indexOf(permission)===-1)throw new Error('You do not have permission to access this section.');return ctx;}
+function getAuthContext(){return getAuthContextService_();}
+function getUsers(){requirePermission_(AUTH_PERMISSIONS.USERS);var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);if(!s||s.getLastRow()<2)return[];var v=s.getDataRange().getValues(),h=v.shift();return v.filter(function(r){return r.some(function(x){return x!=='';});}).map(function(r){var o={};h.forEach(function(k,i){o[k]=r[i];});return o;});}
+function saveUser(data){requirePermission_(AUTH_PERMISSIONS.USERS);var email=String(data.email||'').trim().toLowerCase(),name=String(data.name||'').trim(),role=String(data.role||AUTH_ROLES.EMPLOYEE).trim(),status=String(data.status||'Active').trim();if(!email||email.indexOf('@')<1)throw new Error('A valid Google account email is required.');if(!ROLE_PERMISSIONS[role])throw new Error('Invalid role.');var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS),values=s.getDataRange().getValues(),h=values.shift(),emailIdx=h.indexOf('Email');for(var i=0;i<values.length;i++)if(String(values[i][emailIdx]||'').toLowerCase()===email){s.getRange(i+2,2,1,4).setValues([[name,role,email,status]]);return{updated:true,email:email};}s.appendRow([generateId_('USR'),name||email.split('@')[0],role,email,status]);return{created:true,email:email};}
+function updateUserStatus(userId,status){requirePermission_(AUTH_PERMISSIONS.USERS);var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS),values=s.getDataRange().getValues(),h=values.shift(),idIdx=h.indexOf('User ID'),statusIdx=h.indexOf('Status');for(var i=0;i<values.length;i++)if(String(values[i][idIdx])===String(userId)){s.getRange(i+2,statusIdx+1).setValue(status);return true;}throw new Error('User not found.');}
