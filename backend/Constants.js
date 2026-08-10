@@ -9,6 +9,9 @@ const APP = {
     DELIVERABLES: 'Deliverables',
     CONTENT_BANK: 'ContentBank',
     ACTIVITIES: 'Activities',
+    CLIENT_RECEIPTS: 'ClientReceipts',
+    EMPLOYEE_PAYMENTS: 'EmployeePayments',
+    BUSINESS_EXPENSES: 'BusinessExpenses',
     PAYMENTS: 'Payments',
     USERS: 'Users',
     SETTINGS: 'Settings'
