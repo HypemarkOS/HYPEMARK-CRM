@@ -13,10 +13,7 @@ function injectPremiumTheme_(content){
   var theme=HtmlService.createHtmlOutputFromFile('PremiumTheme').getContent();
   var styleStart=theme.indexOf('<style');
   var styleEnd=theme.indexOf('</style>');
-  var scriptStart=theme.indexOf('<script');
-  var scriptEnd=theme.indexOf('</script>');
   if(styleStart>=0&&styleEnd>=0)content=content.replace('</head>',theme.substring(styleStart,styleEnd+8)+'</head>');
-  if(scriptStart>=0&&scriptEnd>=0)content=content.replace('</body>',theme.substring(scriptStart,scriptEnd+9)+'</body>');
   return content;
 }
 function include(fileName){return HtmlService.createHtmlOutputFromFile(fileName).getContent();}
