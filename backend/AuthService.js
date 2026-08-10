@@ -26,8 +26,6 @@ function getAuthContextService_(){
   var rows=users&&users.getLastRow()>=2?users.getDataRange().getValues():[];
   if(rows.length)rows.shift();
 
-  // Bootstrap exactly one first user as Admin, but only when Apps Script
-  // can positively identify the Google account accessing the web app.
   if(email&&rows.length===0){
     var id=generateId_('USR');
     users.appendRow([id,email.split('@')[0],AUTH_ROLES.ADMIN,email,'Active']);
@@ -52,6 +50,33 @@ function requireAuth_(){var ctx=getAuthContextService_();if(!ctx.authenticated)t
 function requirePermission_(permission){var ctx=requireAuth_();if(ctx.permissions.indexOf(permission)===-1)throw new Error('You do not have permission to access this section.');return ctx;}
 function getAuthContext(){return getAuthContextService_();}
 function getUsers(){requirePermission_(AUTH_PERMISSIONS.USERS);var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);if(!s||s.getLastRow()<2)return[];var v=s.getDataRange().getValues(),h=v.shift();return v.filter(function(r){return r.some(function(x){return x!=='';});}).map(function(r){var o={};h.forEach(function(k,i){o[k]=r[i];});return o;});}
-function saveUser(data){requirePermission_(AUTH_PERMISSIONS.USERS);var email=String(data.email||'').trim().toLowerCase(),name=String(data.name||'').trim(),role=String(data.role||AUTH_ROLES.EMPLOYEE).trim(),status=String(data.status||'Active').trim();if(!email||email.indexOf('@')<1)throw new Error('A valid Google account email is required.');if(!ROLE_PERMISSIONS[role])throw new Error('Invalid role.');var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS),values=s.getDataRange().getValues(),h=values.shift(),emailIdx=h.indexOf('Email');for(var i=0;i<values.length;i++)if(String(values[i][emailIdx]||'').toLowerCase()===email){s.getRange(i+2,2,1,4).setValues([[name,role,email,status]]);return{updated:true,email:email};}s.appendRow([generateId_('USR'),name||email.split('@')[0],role,email,status]);return{created:true,email:email};}
-function updateUserStatus(userId,status){requirePermission_(AUTH_PERMISSIONS.USERS);var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS),values=s.getDataRange().getValues(),h=values.shift(),idIdx=h.indexOf('User ID'),statusIdx=h.indexOf('Status');for(var i=0;i<values.length;i++)if(String(values[i][idIdx])===String(userId)){s.getRange(i+2,statusIdx+1).setValue(status);return true;}throw new Error('User not found.');}
+function saveUser(data){
+  var ctx=requirePermission_(AUTH_PERMISSIONS.USERS);
+  var email=String(data.email||'').trim().toLowerCase(),name=String(data.name||'').trim(),role=String(data.role||AUTH_ROLES.EMPLOYEE).trim(),status=String(data.status||'Active').trim();
+  if(!email||email.indexOf('@')<1)throw new Error('A valid Google account email is required.');
+  if(!ROLE_PERMISSIONS[role])throw new Error('Invalid role.');
+  if(['Active','Inactive'].indexOf(status)<0)throw new Error('Invalid user status.');
+  var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS),values=s.getDataRange().getValues(),h=values.shift(),emailIdx=h.indexOf('Email');
+  for(var i=0;i<values.length;i++)if(String(values[i][emailIdx]||'').toLowerCase()===email){
+    var userId=String(values[i][0]||'');
+    s.getRange(i+2,2,1,4).setValues([[name||email.split('@')[0],role,email,status]]);
+    recordActivity_('User',userId,'Updated user: '+email+' · Role: '+role+' · Status: '+status);
+    return{updated:true,email:email};
+  }
+  var newId=generateId_('USR');
+  s.appendRow([newId,name||email.split('@')[0],role,email,status]);
+  recordActivity_('User',newId,'Created user: '+email+' · Role: '+role+' · Status: '+status);
+  return{created:true,email:email,userId:newId};
+}
+function updateUserStatus(userId,status){
+  requirePermission_(AUTH_PERMISSIONS.USERS);
+  if(['Active','Inactive'].indexOf(String(status))<0)throw new Error('Invalid user status.');
+  var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS),values=s.getDataRange().getValues(),h=values.shift(),idIdx=h.indexOf('User ID'),statusIdx=h.indexOf('Status'),emailIdx=h.indexOf('Email');
+  for(var i=0;i<values.length;i++)if(String(values[i][idIdx])===String(userId)){
+    s.getRange(i+2,statusIdx+1).setValue(status);
+    recordActivity_('User',String(userId),'Changed user status: '+String(values[i][emailIdx]||'')+' → '+status);
+    return true;
+  }
+  throw new Error('User not found.');
+}
 function ensureAuthSetup_(){var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);if(!s)return;var roleCol=s.getRange('C2:C');roleCol.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList([AUTH_ROLES.ADMIN,AUTH_ROLES.PARTNER,AUTH_ROLES.MANAGER,AUTH_ROLES.EMPLOYEE],true).setAllowInvalid(false).build());var statusCol=s.getRange('E2:E');statusCol.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['Active','Inactive'],true).setAllowInvalid(false).build());}
