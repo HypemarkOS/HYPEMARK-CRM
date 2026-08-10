@@ -2,7 +2,16 @@
  * HYPEMARK CRM v1
  * Public Apps Script entry points.
  */
-function doGet(e) { var page=e&&e.parameter?e.parameter.page:''; var file=page==='add'?'AddClient':page==='payments'?'Payments':'Index'; var title=page==='add'?'Add Client | HYPEMARK CRM':page==='payments'?'Payments | HYPEMARK CRM':'HYPEMARK CRM'; return HtmlService.createTemplateFromFile(file).evaluate().setTitle(title).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL); }
+function doGet(e) {
+  var page = e && e.parameter ? String(e.parameter.page || '') : '';
+  var file = 'Dashboard';
+  var title = 'Dashboard | HYPEMARK CRM';
+  if (page === 'clients') { file = 'Index'; title = 'Clients | HYPEMARK CRM'; }
+  else if (page === 'add') { file = 'AddClient'; title = 'Add Client | HYPEMARK CRM'; }
+  else if (page === 'dashboard' || !page) { file = 'Dashboard'; title = 'Dashboard | HYPEMARK CRM'; }
+  else if (page === 'payments') { file = 'Payments'; title = 'Payments | HYPEMARK CRM'; }
+  return HtmlService.createTemplateFromFile(file).evaluate().setTitle(title).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
 function include(fileName){return HtmlService.createHtmlOutputFromFile(fileName).getContent();}
 function onOpen(){SpreadsheetApp.getUi().createMenu('🚀 HYPEMARK CRM').addItem('➕ Add Client','showAddClient').addSeparator().addItem('⚙ Initialize CRM','initializeCRM').addToUi();}
 function showAddClient(){var html=HtmlService.createTemplateFromFile('AddClient').evaluate().setWidth(900).setHeight(700);SpreadsheetApp.getUi().showModalDialog(html,'Add New Client');}
