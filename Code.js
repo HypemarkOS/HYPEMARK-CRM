@@ -13,10 +13,11 @@ function doGet(e) {
     var logoFix = HtmlService.createHtmlOutputFromFile('LogoFix').getContent();
     var clientsPro = HtmlService.createHtmlOutputFromFile('ClientsPro').getContent();
     var projectsPro = HtmlService.createHtmlOutputFromFile('ProjectsPro').getContent();
+    var contentPro = HtmlService.createHtmlOutputFromFile('ContentPro').getContent();
     var logoData = getHypeMarkLogoDataUri_();
     logoFix = logoFix.replace('__HYPEMARK_LOGO__', logoData);
     var html = output.getContent();
-    html = html.replace('</head>', theme + brandFix + premiumShell + logoFix + clientsPro + '</head>');
+    html = html.replace('</head>', theme + brandFix + premiumShell + logoFix + clientsPro + contentPro + '</head>');
     html = html.replace('</body>', projectsPro + '</body>');
     output = HtmlService.createHtmlOutput(html);
   }
