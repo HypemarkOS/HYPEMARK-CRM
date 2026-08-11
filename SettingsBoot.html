@@ -1,0 +1,24 @@
+<script>
+(function(){
+  window.settings=function(){
+    var c=document.getElementById('content');
+    if(!c)return;
+    c.innerHTML='<div class="hero"><div><h1>Settings</h1><p>CRM configuration and authorised Google-account access.</p></div><button class="primary" onclick="openUserForm()">＋ Add User</button></div><div class="card panel"><h2>Users & Permissions</h2><p>Loading authorised users...</p><div id="settingsStatus" class="loading">Loading settings...</div></div>';
+    google.script.run
+      .withSuccessHandler(function(rows){
+        rows=Array.isArray(rows)?rows:[];
+        var esc=function(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(x){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[x];});};
+        var access=function(r){return ({Admin:'Full CRM access',Partner:'Full CRM access',Manager:'Operations + activities',Employee:'Projects + deliverables + content + own finance'})[r]||'Custom';};
+        var status=document.getElementById('settingsStatus');
+        if(!status)return;
+        status.className='table-wrap';
+        status.innerHTML='<table class="table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Access</th><th></th></tr></thead><tbody>'+rows.map(function(u){var st=String(u.Status||'Inactive'),role=String(u.Role||'');return '<tr><td><strong>'+esc(u.Name)+'</strong></td><td>'+esc(u.Email)+'</td><td>'+esc(role)+'</td><td><span class="status '+(st==='Active'?'green':'red')+'">'+esc(st)+'</span></td><td>'+esc(access(role))+'</td><td><button class="secondary" onclick="toggleUser(\''+esc(u['User ID'])+'\',\''+(st==='Active'?'Inactive':'Active')+'\')">'+(st==='Active'?'Deactivate':'Activate')+'</button></td></tr>';}).join('')+'</tbody></table>'+(rows.length?'':'<div class="empty">No users found.</div>');
+      })
+      .withFailureHandler(function(e){
+        var status=document.getElementById('settingsStatus');
+        if(status)status.innerHTML='<div class="notice err">Settings could not load: '+String(e&&e.message||e)+'</div>';
+      })
+      .getUsers();
+  };
+})();
+</script>
