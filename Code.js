@@ -19,11 +19,12 @@ function doGet(e) {
     var activities = HtmlService.createHtmlOutputFromFile('Activities').getContent();
     var settings = HtmlService.createHtmlOutputFromFile('Settings').getContent();
     var settingsBoot = HtmlService.createHtmlOutputFromFile('SettingsBoot').getContent();
+    var navigationGuard = HtmlService.createHtmlOutputFromFile('NavigationGuard').getContent();
     var logoData = getHypeMarkLogoDataUri_();
     logoFix = logoFix.replace('__HYPEMARK_LOGO__', logoData);
     var html = output.getContent();
     html = html.replace('</head>', theme + brandFix + premiumShell + logoFix + '</head>');
-    html = html.replace('</body>', clientsPro + contentPro + paymentsBalances + reports + activities + settings + projectsPro + settingsBoot + '</body>');
+    html = html.replace('</body>', clientsPro + contentPro + paymentsBalances + reports + activities + settings + projectsPro + settingsBoot + navigationGuard + '</body>');
     output = HtmlService.createHtmlOutput(html);
   }
   return output.setTitle(auth.authenticated ? 'HYPEMARK CRM' : 'Sign in | HYPEMARK CRM').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
