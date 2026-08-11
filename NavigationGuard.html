@@ -1,0 +1,11 @@
+<script>
+(function(){
+  var originalShow=window.show;
+  if(typeof originalShow!=='function')return;
+  window.__hmCurrentPage='dashboard';
+  window.show=function(page){
+    window.__hmCurrentPage=page;
+    return originalShow.apply(this,arguments);
+  };
+})();
+</script>
