@@ -18,14 +18,12 @@ function doGet(e) {
     var reports = HtmlService.createHtmlOutputFromFile('Reports').getContent();
     var activities = HtmlService.createHtmlOutputFromFile('Activities').getContent();
     var settings = HtmlService.createHtmlOutputFromFile('Settings').getContent();
+    var settingsBoot = HtmlService.createHtmlOutputFromFile('SettingsBoot').getContent();
     var logoData = getHypeMarkLogoDataUri_();
     logoFix = logoFix.replace('__HYPEMARK_LOGO__', logoData);
     var html = output.getContent();
-
-    // CSS/theme belongs in <head>. Interactive module scripts are deliberately
-    // loaded at the end of <body> so the App DOM already exists when they run.
     html = html.replace('</head>', theme + brandFix + premiumShell + logoFix + '</head>');
-    html = html.replace('</body>', clientsPro + contentPro + paymentsBalances + reports + activities + settings + projectsPro + '</body>');
+    html = html.replace('</body>', clientsPro + contentPro + paymentsBalances + reports + activities + settings + projectsPro + settingsBoot + '</body>');
     output = HtmlService.createHtmlOutput(html);
   }
   return output.setTitle(auth.authenticated ? 'HYPEMARK CRM' : 'Sign in | HYPEMARK CRM').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
