@@ -17,15 +17,15 @@ function doGet(e) {
     var paymentsBalances = HtmlService.createHtmlOutputFromFile('PaymentsBalances').getContent();
     var reports = HtmlService.createHtmlOutputFromFile('Reports').getContent();
     var activities = HtmlService.createHtmlOutputFromFile('Activities').getContent();
+    var settings = HtmlService.createHtmlOutputFromFile('Settings').getContent();
     var logoData = getHypeMarkLogoDataUri_();
     logoFix = logoFix.replace('__HYPEMARK_LOGO__', logoData);
     var html = output.getContent();
-    html = html.replace('</head>', theme + brandFix + premiumShell + logoFix + clientsPro + contentPro + paymentsBalances + reports + activities + '</head>');
+    html = html.replace('</head>', theme + brandFix + premiumShell + logoFix + clientsPro + contentPro + paymentsBalances + reports + activities + settings + '</head>');
     html = html.replace('</body>', projectsPro + '</body>');
     output = HtmlService.createHtmlOutput(html);
   }
-  return output.setTitle(auth.authenticated ? 'HYPEMARK CRM' : 'Sign in | HYPEMARK CRM')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  return output.setTitle(auth.authenticated ? 'HYPEMARK CRM' : 'Sign in | HYPEMARK CRM').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 function getHypeMarkLogoDataUri_(){try{var blob=DriveApp.getFileById('1-MtiN1DU-pvP4EZCtc1eQrY-NJWEqcgf').getBlob();return 'data:'+(blob.getContentType()||'image/png')+';base64,'+Utilities.base64Encode(blob.getBytes());}catch(err){return '';}}
 function include(fileName){return HtmlService.createHtmlOutputFromFile(fileName).getContent();}
