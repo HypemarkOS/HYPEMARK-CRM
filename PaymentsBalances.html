@@ -1,7 +1,6 @@
 <script>
 (function(){
-  var injected=false;
-  function escPB(v){return String(v==null?'':v).replace(/[&<>\'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]})}
+  function escPB(v){return String(v==null?'':v).replace(/[&<>\'\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]})}
   function moneyPB(v){return '₹'+Number(v||0).toLocaleString('en-IN',{maximumFractionDigits:2})}
   function loadBalances(){
     var content=document.getElementById('content');
@@ -45,30 +44,21 @@
     var totalAllocated=data.reduce(function(sum,r){return sum+r.allocated;},0);
     box.innerHTML='<div class="panel-head"><div><h2>Receipt Balances</h2><p>Every client receipt is tracked against linked employee/partner payments and business expenses.</p></div></div>'+
       '<div class="grid" style="margin-top:14px;margin-bottom:14px">'+
-      '<div class="card stat"><div class="label">Money Received</div><div class="value money">'+moneyPB(totalReceived)+'</div></div>'+
-      '<div class="card stat"><div class="label">Allocated</div><div class="value money">'+moneyPB(totalAllocated)+'</div></div>'+
-      '<div class="card stat"><div class="label">Unallocated Client Funds</div><div class="value money orange">'+moneyPB(unallocated)+'</div><div class="sub">Available for future allocation</div></div>'+
+      '<div class="card stat"><div class="label">Money Received</div><div class="value money">'+moneyPB(totalReceived)+'</div></div>'+ 
+      '<div class="card stat"><div class="label">Allocated</div><div class="value money">'+moneyPB(totalAllocated)+'</div></div>'+ 
+      '<div class="card stat"><div class="label">Unallocated Client Funds</div><div class="value money orange">'+moneyPB(unallocated)+'</div><div class="sub">Available for future allocation</div></div>'+ 
       '</div>'+
       (data.length?'<div class="table-wrap"><table class="table"><thead><tr><th>Receipt</th><th>Client</th><th>Received</th><th>Allocated</th><th>Remaining</th><th>Date</th></tr></thead><tbody>'+data.map(function(r){return '<tr><td><strong>'+escPB(r.id)+'</strong></td><td>'+escPB(r.client)+'</td><td class="money">'+moneyPB(r.received)+'</td><td class="money">'+moneyPB(r.allocated)+'</td><td class="money '+(r.remaining>0?'orange':'green')+'"><strong>'+moneyPB(r.remaining)+'</strong></td><td>'+escPB(r.date)+'</td></tr>';}).join('')+'</tbody></table></div>':'<div class="empty">No client receipts recorded yet.</div>');
-    injected=true;
   }
   function observe(){
     var root=document.getElementById('content');
     if(!root){setTimeout(observe,300);return;}
     var obs=new MutationObserver(function(){
       var isPayments=document.querySelector('.tabs')&&document.getElementById('paymentList');
-      if(isPayments){
-        if(!document.getElementById('receiptBalancesPanel')) loadBalances();
-      }else{
-        injected=false;
-      }
+      if(isPayments && !document.getElementById('receiptBalancesPanel')) loadBalances();
     });
     obs.observe(root,{childList:true,subtree:true});
-    setInterval(function(){
-      if(document.querySelector('.tabs')&&document.getElementById('paymentList')){
-        loadBalances();
-      }
-    },4000);
+    if(document.querySelector('.tabs')&&document.getElementById('paymentList')&&!document.getElementById('receiptBalancesPanel')) loadBalances();
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',observe); else observe();
 })();
