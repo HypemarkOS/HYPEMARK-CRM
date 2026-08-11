@@ -1,0 +1,13 @@
+<script>
+(function(){
+  function escA(v){return String(v==null?'':v).replace(/[&<>\'\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]});}
+  function renderActivities(rows){
+    rows=rows||[]; var c=document.getElementById('content'); if(!c)return;
+    var filtered=rows.slice().reverse();
+    c.innerHTML='<div class="hero"><div><h1>Activities</h1><p>CRM audit trail showing who performed actions and when.</p></div></div><div class="toolbar"><input id="actSearch" placeholder="Search activities..." oninput="filterActivities()"><select id="actEntity" onchange="filterActivities()"><option value="">All modules</option><option>Client</option><option>Engagement</option><option>Project</option><option>Deliverable</option><option>Content</option><option>Client Receipt</option><option>Employee Payment</option><option>Business Expense</option><option>User</option></select></div><div class="card panel"><div id="actTable"></div></div>';
+    window._activities=filtered; filterActivities();
+  }
+  window.filterActivities=function(){var q=(document.getElementById('actSearch')||{}).value||'',entity=(document.getElementById('actEntity')||{}).value||'';q=q.toLowerCase();var rows=(window._activities||[]).filter(function(x){return (!entity||String(x.Entity||'')===entity)&&(!q||JSON.stringify(x).toLowerCase().indexOf(q)>=0);});var el=document.getElementById('actTable');if(!el)return;el.innerHTML=rows.length?'<div class="table-wrap"><table class="table"><thead><tr><th>Date & Time</th><th>User</th><th>Module</th><th>Record</th><th>Action</th></tr></thead><tbody>'+rows.map(function(x){return '<tr><td>'+escA(x['Date Time'])+'</td><td><strong>'+escA(x.User)+'</strong></td><td><span class="pill">'+escA(x.Entity)+'</span></td><td>'+escA(x['Entity ID'])+'</td><td>'+escA(x.Action)+'</td></tr>';}).join('')+'</tbody></table></div>':'<div class="empty">No activities found.</div>';};
+  window.activities=function(){var c=document.getElementById('content');if(!c)return;c.innerHTML='<div class="hero"><div><h1>Activities</h1><p>Loading audit trail...</p></div></div><div class="loading">Loading activities...</div>';google.script.run.withSuccessHandler(renderActivities).withFailureHandler(function(e){c.innerHTML='<div class="card panel"><div class="notice err">Unable to load activities: '+escA(e&&e.message||e)+'</div></div>';}).getActivities();};
+})();
+</script>
