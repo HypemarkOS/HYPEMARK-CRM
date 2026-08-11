@@ -1,27 +1,31 @@
-<style id="hm-brand-fix-v2">
+<style id="hm-brand-fix-v3">
 .brand{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;background:#fff!important}
-.brand:before{display:block!important;content:""!important;width:210px!important;height:210px!important;background-size:contain!important;background-position:center!important;background-repeat:no-repeat!important}
+.brand:before{content:none!important;display:none!important;background:none!important}
 .brand .hm-logo-img{display:block!important;width:210px!important;height:210px!important;max-width:86%!important;max-height:86%!important;object-fit:contain!important;object-position:center!important}
 @media(max-width:700px){.brand .hm-logo-img{width:68px!important;height:68px!important;max-width:92%!important;max-height:92%!important}}
 </style>
 <script>
 (function(){
-function mountLogo(){
-  var brand=document.querySelector('.brand');
-  if(!brand)return;
-  var pseudo=getComputedStyle(brand,'::before').backgroundImage;
-  var match=pseudo&&pseudo.match(/^url\([\"']?(.*?)[\"']?\)$/);
-  var src=match?match[1]:'';
-  if(!src||src==='none')return;
-  var img=document.createElement('img');
-  img.className='hm-logo-img';
-  img.alt='HYPEMARK';
-  img.src=src;
-  img.decoding='async';
-  img.loading='eager';
-  brand.textContent='';
-  brand.appendChild(img);
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mountLogo);else mountLogo();
+  var logoUrl='https://drive.google.com/uc?export=view&id=1-MtiN1DU-pvP4EZCtc1eQrY-NJWEqcgf';
+  function mountLogo(){
+    var brand=document.querySelector('.brand');
+    if(!brand)return;
+    var img=document.createElement('img');
+    img.className='hm-logo-img';
+    img.alt='HYPEMARK';
+    img.src=logoUrl;
+    img.decoding='async';
+    img.loading='eager';
+    img.onerror=function(){
+      img.style.display='none';
+      brand.textContent='HYPEMARK';
+      brand.style.fontSize='24px';
+      brand.style.fontWeight='850';
+      brand.style.color='#151922';
+    };
+    brand.textContent='';
+    brand.appendChild(img);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mountLogo);else mountLogo();
 })();
 </script>
