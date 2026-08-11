@@ -1,24 +1,31 @@
 <script>
 (function(){
+  function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(x){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[x];});}
+  function access(r){return ({Admin:'Full CRM access',Partner:'Full CRM access',Manager:'Operations + activities',Employee:'Projects + deliverables + content + own finance'})[r]||'Custom';}
+  window.openUserForm=function(){
+    var old=document.getElementById('settingsUserModal'); if(old)old.remove();
+    var m=document.createElement('div'); m.id='settingsUserModal'; m.className='modal-backdrop';
+    m.innerHTML='<div class="modal" style="max-width:620px"><div class="modal-head"><h2>Add User</h2><button class="icon-btn" onclick="closeUserForm()">×</button></div><div class="modal-body"><div class="form-grid"><label>Name<input id="suName" type="text" placeholder="Full name"></label><label>Google account email<input id="suEmail" type="email" placeholder="name@gmail.com"></label><label>Role<select id="suRole"><option>Employee</option><option>Manager</option><option>Partner</option><option>Admin</option></select></label><label>Status<select id="suStatus"><option>Active</option><option>Inactive</option></select></label></div><div id="suError" class="notice err" style="display:none;margin-top:16px"></div></div><div class="modal-foot"><button class="secondary" onclick="closeUserForm()">Cancel</button><button class="primary" onclick="saveSettingsUser()">Save User</button></div></div>';
+    document.body.appendChild(m);
+  };
+  window.closeUserForm=function(){var m=document.getElementById('settingsUserModal');if(m)m.remove();};
+  window.saveSettingsUser=function(){
+    var data={name:document.getElementById('suName').value.trim(),email:document.getElementById('suEmail').value.trim(),role:document.getElementById('suRole').value,status:document.getElementById('suStatus').value};
+    var err=document.getElementById('suError');
+    if(!data.email||data.email.indexOf('@')<1){err.textContent='Please enter a valid Google account email.';err.style.display='block';return;}
+    google.script.run.withSuccessHandler(function(){closeUserForm();window.settings();}).withFailureHandler(function(e){err.textContent=String(e&&e.message||e);err.style.display='block';}).saveUser(data);
+  };
+  window.toggleUser=function(userId,status){
+    google.script.run.withSuccessHandler(function(){window.settings();}).withFailureHandler(function(e){alert(String(e&&e.message||e));}).updateUserStatus(userId,status);
+  };
   window.settings=function(){
     var c=document.getElementById('content');
     if(!c)return;
     c.innerHTML='<div class="hero"><div><h1>Settings</h1><p>CRM configuration and authorised Google-account access.</p></div><button class="primary" onclick="openUserForm()">＋ Add User</button></div><div class="card panel"><h2>Users & Permissions</h2><p>Loading authorised users...</p><div id="settingsStatus" class="loading">Loading settings...</div></div>';
-    google.script.run
-      .withSuccessHandler(function(rows){
-        rows=Array.isArray(rows)?rows:[];
-        var esc=function(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(x){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[x];});};
-        var access=function(r){return ({Admin:'Full CRM access',Partner:'Full CRM access',Manager:'Operations + activities',Employee:'Projects + deliverables + content + own finance'})[r]||'Custom';};
-        var status=document.getElementById('settingsStatus');
-        if(!status)return;
-        status.className='table-wrap';
-        status.innerHTML='<table class="table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Access</th><th></th></tr></thead><tbody>'+rows.map(function(u){var st=String(u.Status||'Inactive'),role=String(u.Role||'');return '<tr><td><strong>'+esc(u.Name)+'</strong></td><td>'+esc(u.Email)+'</td><td>'+esc(role)+'</td><td><span class="status '+(st==='Active'?'green':'red')+'">'+esc(st)+'</span></td><td>'+esc(access(role))+'</td><td><button class="secondary" onclick="toggleUser(\''+esc(u['User ID'])+'\',\''+(st==='Active'?'Inactive':'Active')+'\')">'+(st==='Active'?'Deactivate':'Activate')+'</button></td></tr>';}).join('')+'</tbody></table>'+(rows.length?'':'<div class="empty">No users found.</div>');
-      })
-      .withFailureHandler(function(e){
-        var status=document.getElementById('settingsStatus');
-        if(status)status.innerHTML='<div class="notice err">Settings could not load: '+String(e&&e.message||e)+'</div>';
-      })
-      .getUsers();
+    google.script.run.withSuccessHandler(function(rows){
+      rows=Array.isArray(rows)?rows:[];var status=document.getElementById('settingsStatus');if(!status)return;status.className='table-wrap';
+      status.innerHTML='<table class="table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Access</th><th></th></tr></thead><tbody>'+rows.map(function(u){var st=String(u.Status||'Inactive'),role=String(u.Role||'');return '<tr><td><strong>'+esc(u.Name)+'</strong></td><td>'+esc(u.Email)+'</td><td>'+esc(role)+'</td><td><span class="status '+(st==='Active'?'green':'red')+'">'+esc(st)+'</span></td><td>'+esc(access(role))+'</td><td><button class="secondary" onclick="toggleUser(\''+esc(u['User ID'])+'\',\''+(st==='Active'?'Inactive':'Active')+'\')">'+(st==='Active'?'Deactivate':'Activate')+'</button></td></tr>';}).join('')+'</tbody></table>' +(rows.length?'':'<div class="empty">No users found.</div>');
+    }).withFailureHandler(function(e){var status=document.getElementById('settingsStatus');if(status)status.innerHTML='<div class="notice err">Settings could not load: '+esc(e&&e.message||e)+'</div>';}).getUsers();
   };
 })();
 </script>
