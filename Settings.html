@@ -3,8 +3,10 @@
   'use strict';
   function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];});}
   function access(role){return ({Admin:'Full CRM access',Partner:'Full CRM access',Manager:'Operations + activities',Employee:'Projects + deliverables + content + own finance'})[role]||'Custom';}
+  function notify(message,type){if(typeof window.toast==='function')window.toast(message,type);else if(type==='err')window.alert(message);}
   function modal(){return document.getElementById('modalBg');}
   function close(){var m=modal();if(m)m.classList.remove('show');var b=document.getElementById('modalBody');if(b)b.innerHTML='';}
+  window.closeModal=close;
   function load(){
     var c=document.getElementById('content');if(!c)return;
     c.innerHTML='<div class="hero"><div><h1>Settings</h1><p>Manage authorised users and CRM access.</p></div><button id="settingsAddUser" class="primary" type="button">＋ Add User</button></div><div class="card panel"><h2>Users & Permissions</h2><p>Access is enforced on the server for every user.</p><div id="settingsTable" class="loading">Loading authorised users...</div></div>';
@@ -14,15 +16,16 @@
   function render(rows){
     var t=document.getElementById('settingsTable');if(!t)return;rows=Array.isArray(rows)?rows:[];
     t.className='table-wrap';
-    t.innerHTML='<table class="table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Access</th><th>Action</th></tr></thead><tbody>'+rows.map(function(u){var st=String(u.Status||'Inactive'),role=String(u.Role||''),next=st==='Active'?'Inactive':'Active';return '<tr><td><strong>'+esc(u.Name)+'</strong></td><td>'+esc(u.Email)+'</td><td>'+esc(role)+'</td><td><span class="status '+(st==='Active'?'green':'red')+'">'+esc(st)+'</span></td><td>'+esc(access(role))+'</td><td><button class="secondary" type="button" data-user="'+esc(u['User ID'])+'" data-next="'+next+'">'+(st==='Active'?'Deactivate':'Activate')+'</button></td></tr>';}).join('')+'</tbody></table>'+(rows.length?'':'<div class="empty">No users found.</div>');
+    t.innerHTML='<table class="table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Access</th><th>Action</th></tr></thead><tbody>'+rows.map(function(u){var st=String(u.Status||'Inactive'),role=String(u.Role||''),next=st==='Active'?'Inactive':'Active';return '<tr><td><strong>'+esc(u.Name)+'</strong></td><td>'+esc(u.Email)+'</td><td>'+esc(role)+'</td><td><span class="status '+(st==='Active'?'green':'red')+'">'+esc(st)+'</span></td><td>'+esc(access(role))+'</td><td><button class="secondary" type="button" data-user="'+esc(u['User ID'])+'" data-next="'+next+'">'+(st==='Active'?'Deactivate':'Activate')+'</button></td></tr>';}).join('')+'</tbody></table>' +(rows.length?'':'<div class="empty">No users found.</div>');
     t.querySelectorAll('[data-user]').forEach(function(btn){btn.addEventListener('click',function(){changeStatus(this.getAttribute('data-user'),this.getAttribute('data-next'));});});
   }
   function openUser(){
     var m=modal(),title=document.getElementById('modalTitle'),body=document.getElementById('modalBody');
-    if(!m||!title||!body){toast('Settings modal is unavailable. Please refresh the CRM.','err');return;}
+    if(!m||!title||!body){notify('Settings modal is unavailable. Please refresh the CRM.','err');return;}
     title.textContent='Add User';
-    body.innerHTML='<div class="form-grid"><div class="field"><label>Name</label><input id="suName" type="text" autocomplete="name" placeholder="Full name"></div><div class="field"><label>Google Account Email</label><input id="suEmail" type="email" autocomplete="email" placeholder="name@gmail.com"></div><div class="field"><label>Role</label><select id="suRole"><option value="Employee">Employee</option><option value="Manager">Manager</option><option value="Partner">Partner</option><option value="Admin">Admin</option></select></div><div class="field"><label>Status</label><select id="suStatus"><option value="Active">Active</option><option value="Inactive">Inactive</option></select></div><div class="field full"><div id="suError" class="notice err" style="display:none"></div></div></div><div class="form-actions"><button id="suSave" class="primary" type="button">Save User</button></div>';
+    body.innerHTML='<div class="form-grid"><div class="field"><label>Name</label><input id="suName" type="text" autocomplete="name" placeholder="Full name"></div><div class="field"><label>Google Account Email</label><input id="suEmail" type="email" autocomplete="email" placeholder="name@gmail.com"></div><div class="field"><label>Role</label><select id="suRole"><option value="Employee">Employee</option><option value="Manager">Manager</option><option value="Partner">Partner</option><option value="Admin">Admin</option></select></div><div class="field"><label>Status</label><select id="suStatus"><option value="Active">Active</option><option value="Inactive">Inactive</option></select></div><div class="field full"><div id="suError" class="notice err" style="display:none"></div></div></div><div class="form-actions"><button id="suCancel" class="secondary" type="button">Cancel</button><button id="suSave" class="primary" type="button">Save User</button></div>';
     m.classList.add('show');
+    document.getElementById('suCancel').addEventListener('click',close);
     document.getElementById('suSave').addEventListener('click',saveUser);
     document.getElementById('suName').focus();
   }
@@ -33,11 +36,11 @@
     if(!data.name){err.textContent='Please enter the user name.';err.style.display='block';name.focus();return;}
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)){err.textContent='Please enter a valid Google account email.';err.style.display='block';email.focus();return;}
     save.disabled=true;save.textContent='Saving...';
-    google.script.run.withSuccessHandler(function(){close();toast('User saved successfully.','ok');load();}).withFailureHandler(function(e){err.textContent=String(e&&e.message||e);err.style.display='block';save.disabled=false;save.textContent='Save User';}).saveUser(data);
+    google.script.run.withSuccessHandler(function(){close();notify('User saved successfully.','ok');load();}).withFailureHandler(function(e){err.textContent=String(e&&e.message||e);err.style.display='block';save.disabled=false;save.textContent='Save User';}).saveUser(data);
   }
   function changeStatus(id,status){
     if(!id)return;
-    google.script.run.withSuccessHandler(function(){toast('User status updated.','ok');load();}).withFailureHandler(function(e){toast(e&&e.message||String(e),'err');}).updateUserStatus(id,status);
+    google.script.run.withSuccessHandler(function(){notify('User status updated.','ok');load();}).withFailureHandler(function(e){notify(e&&e.message||String(e),'err');}).updateUserStatus(id,status);
   }
   window.settings=load;
 })();
