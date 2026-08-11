@@ -2,29 +2,46 @@
 (function(){
   function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(x){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[x];});}
   function access(r){return ({Admin:'Full CRM access',Partner:'Full CRM access',Manager:'Operations + activities',Employee:'Projects + deliverables + content + own finance'})[r]||'Custom';}
+  function getModal(){return document.getElementById('modalBg');}
   window.openUserForm=function(){
-    var old=document.getElementById('settingsUserModal'); if(old)old.remove();
-    var m=document.createElement('div'); m.id='settingsUserModal'; m.className='modal-backdrop';
-    m.innerHTML='<div class="modal" style="max-width:620px"><div class="modal-head"><h2>Add User</h2><button class="icon-btn" onclick="closeUserForm()">×</button></div><div class="modal-body"><div class="form-grid"><label>Name<input id="suName" type="text" placeholder="Full name"></label><label>Google account email<input id="suEmail" type="email" placeholder="name@gmail.com"></label><label>Role<select id="suRole"><option>Employee</option><option>Manager</option><option>Partner</option><option>Admin</option></select></label><label>Status<select id="suStatus"><option>Active</option><option>Inactive</option></select></label></div><div id="suError" class="notice err" style="display:none;margin-top:16px"></div></div><div class="modal-foot"><button class="secondary" onclick="closeUserForm()">Cancel</button><button class="primary" onclick="saveSettingsUser()">Save User</button></div></div>';
-    document.body.appendChild(m);
+    var bg=getModal();
+    if(!bg){alert('CRM modal container is unavailable. Please refresh the page.');return;}
+    var body=document.getElementById('modalBody');
+    var title=document.getElementById('modalTitle');
+    if(!body||!title){alert('CRM modal controls are unavailable. Please refresh the page.');return;}
+    title.textContent='Add User';
+    body.innerHTML='<div class="form-grid">'+
+      '<div class="field"><label>Name</label><input id="suName" type="text" placeholder="Full name"></div>'+
+      '<div class="field"><label>Google account email</label><input id="suEmail" type="email" placeholder="name@gmail.com"></div>'+
+      '<div class="field"><label>Role</label><select id="suRole"><option value="Employee">Employee</option><option value="Manager">Manager</option><option value="Partner">Partner</option><option value="Admin">Admin</option></select></div>'+
+      '<div class="field"><label>Status</label><select id="suStatus"><option value="Active">Active</option><option value="Inactive">Inactive</option></select></div>'+
+      '<div class="field full"><div id="suError" class="notice err" style="display:none"></div></div>'+\
+      '</div><div class="form-actions"><button class="primary" id="saveSettingsUserBtn" type="button">Save User</button></div>';
+    bg.classList.add('show');
+    var save=document.getElementById('saveSettingsUserBtn');
+    if(save)save.addEventListener('click',window.saveSettingsUser);
+    setTimeout(function(){var n=document.getElementById('suName');if(n)n.focus();},0);
   };
-  window.closeUserForm=function(){var m=document.getElementById('settingsUserModal');if(m)m.remove();};
+  window.closeUserForm=function(){var bg=getModal();if(bg)bg.classList.remove('show');var body=document.getElementById('modalBody');if(body)body.innerHTML='';};
   window.saveSettingsUser=function(){
-    var data={name:document.getElementById('suName').value.trim(),email:document.getElementById('suEmail').value.trim(),role:document.getElementById('suRole').value,status:document.getElementById('suStatus').value};
-    var err=document.getElementById('suError');
-    if(!data.email||data.email.indexOf('@')<1){err.textContent='Please enter a valid Google account email.';err.style.display='block';return;}
-    google.script.run.withSuccessHandler(function(){closeUserForm();window.settings();}).withFailureHandler(function(e){err.textContent=String(e&&e.message||e);err.style.display='block';}).saveUser(data);
+    var name=document.getElementById('suName'),email=document.getElementById('suEmail'),role=document.getElementById('suRole'),status=document.getElementById('suStatus'),err=document.getElementById('suError');
+    if(!name||!email||!role||!status||!err)return;
+    var data={name:name.value.trim(),email:email.value.trim(),role:role.value,status:status.value};
+    err.style.display='none';
+    if(!data.name){err.textContent='Please enter the user name.';err.style.display='block';name.focus();return;}
+    if(!data.email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)){err.textContent='Please enter a valid Google account email.';err.style.display='block';email.focus();return;}
+    var save=document.getElementById('saveSettingsUserBtn');if(save){save.disabled=true;save.textContent='Saving...';}
+    google.script.run.withSuccessHandler(function(){closeUserForm();window.settings();}).withFailureHandler(function(e){err.textContent=String(e&&e.message||e);err.style.display='block';if(save){save.disabled=false;save.textContent='Save User';}}).saveUser(data);
   };
-  window.toggleUser=function(userId,status){
-    google.script.run.withSuccessHandler(function(){window.settings();}).withFailureHandler(function(e){alert(String(e&&e.message||e));}).updateUserStatus(userId,status);
-  };
+  window.toggleUser=function(userId,status){google.script.run.withSuccessHandler(function(){window.settings();}).withFailureHandler(function(e){alert(String(e&&e.message||e));}).updateUserStatus(userId,status);};
   window.settings=function(){
-    var c=document.getElementById('content');
-    if(!c)return;
-    c.innerHTML='<div class="hero"><div><h1>Settings</h1><p>CRM configuration and authorised Google-account access.</p></div><button class="primary" onclick="openUserForm()">＋ Add User</button></div><div class="card panel"><h2>Users & Permissions</h2><p>Loading authorised users...</p><div id="settingsStatus" class="loading">Loading settings...</div></div>';
+    var c=document.getElementById('content');if(!c)return;
+    c.innerHTML='<div class="hero"><div><h1>Settings</h1><p>CRM configuration and authorised Google-account access.</p></div><button id="settingsAddUserBtn" class="primary" type="button">＋ Add User</button></div><div class="card panel"><h2>Users & Permissions</h2><p>Authorised Google-account access.</p><div id="settingsStatus" class="loading">Loading settings...</div></div>';
+    var add=document.getElementById('settingsAddUserBtn');if(add)add.addEventListener('click',window.openUserForm);
     google.script.run.withSuccessHandler(function(rows){
       rows=Array.isArray(rows)?rows:[];var status=document.getElementById('settingsStatus');if(!status)return;status.className='table-wrap';
-      status.innerHTML='<table class="table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Access</th><th></th></tr></thead><tbody>'+rows.map(function(u){var st=String(u.Status||'Inactive'),role=String(u.Role||'');return '<tr><td><strong>'+esc(u.Name)+'</strong></td><td>'+esc(u.Email)+'</td><td>'+esc(role)+'</td><td><span class="status '+(st==='Active'?'green':'red')+'">'+esc(st)+'</span></td><td>'+esc(access(role))+'</td><td><button class="secondary" onclick="toggleUser(\''+esc(u['User ID'])+'\',\''+(st==='Active'?'Inactive':'Active')+'\')">'+(st==='Active'?'Deactivate':'Activate')+'</button></td></tr>';}).join('')+'</tbody></table>' +(rows.length?'':'<div class="empty">No users found.</div>');
+      status.innerHTML='<table class="table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Access</th><th></th></tr></thead><tbody>'+rows.map(function(u){var st=String(u.Status||'Inactive'),role=String(u.Role||'');return '<tr><td><strong>'+esc(u.Name)+'</strong></td><td>'+esc(u.Email)+'</td><td>'+esc(role)+'</td><td><span class="status '+(st==='Active'?'green':'red')+'">'+esc(st)+'</span></td><td>'+esc(access(role))+'</td><td><button class="secondary" type="button" data-user-id="'+esc(u['User ID'])+'" data-user-status="'+(st==='Active'?'Inactive':'Active')+'">'+(st==='Active'?'Deactivate':'Activate')+'</button></td></tr>';}).join('')+'</tbody></table>' +(rows.length?'':'<div class="empty">No users found.</div>');
+      status.querySelectorAll('[data-user-id]').forEach(function(btn){btn.addEventListener('click',function(){toggleUser(this.getAttribute('data-user-id'),this.getAttribute('data-user-status'));});});
     }).withFailureHandler(function(e){var status=document.getElementById('settingsStatus');if(status)status.innerHTML='<div class="notice err">Settings could not load: '+esc(e&&e.message||e)+'</div>';}).getUsers();
   };
 })();
