@@ -1,0 +1,28 @@
+<script>
+(function(){
+  function moneyR(v){return '₹'+Number(v||0).toLocaleString('en-IN',{maximumFractionDigits:2});}
+  function escR(v){return String(v==null?'':v).replace(/[&<>\'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]});}
+  function renderReports(d){
+    d=d||{};
+    var c=document.getElementById('content'); if(!c) return;
+    var received=Number(d.clientReceipts||0), employee=Number(d.employeePayments||0), business=Number(d.miscExpenses||0), allocated=Number(d.allocatedAmount||0), unallocated=Number(d.unallocatedAmount||0), net=Number(d.netContribution||0);
+    var rows=d.clientProfitability||[];
+    c.innerHTML='<div class="hero"><div><h1>Reports</h1><p>Financial and operational performance from the same CRM data used by Payments and Dashboard.</p></div></div>'+
+      '<div class="grid">'+
+      '<div class="card stat"><div class="label">Money Received</div><div class="value money">'+moneyR(received)+'</div><div class="sub">Client receipts</div></div>'+
+      '<div class="card stat"><div class="label">Total Costs</div><div class="value money">'+moneyR(employee+business)+'</div><div class="sub">Employee + business expenses</div></div>'+
+      '<div class="card stat"><div class="label">Net Contribution</div><div class="value money '+(net<0?'red':'green')+'">'+moneyR(net)+'</div><div class="sub">Received minus costs</div></div>'+
+      '<div class="card stat"><div class="label">Unallocated Funds</div><div class="value money orange">'+moneyR(unallocated)+'</div><div class="sub">Received but not allocated</div></div></div>'+
+      '<div class="panels">'+
+      '<div class="card panel"><div class="panel-head"><div><h2>Client Profitability</h2><p>Revenue, cost and contribution by client.</p></div></div>'+
+      (rows.length?'<div class="profit-row profit-head"><div>Client</div><div>Revenue</div><div>Cost</div><div>Profit</div><div>Margin</div></div>'+rows.map(function(r){var rev=Number(r.revenue||0),cost=Number(r.costs||0),profit=Number(r.profit||0),margin=rev?profit/rev*100:0;var cls=profit<0?'red':profit===0?'orange':'green';return '<div class="profit-row"><strong>'+escR(r.clientName||r.businessName||r.clientId)+'</strong><span>'+moneyR(rev)+'</span><span>'+moneyR(cost)+'</span><span class="'+cls+'">'+moneyR(profit)+'</span><span class="pill '+cls+'">'+margin.toFixed(1)+'%</span></div>';}).join(''):'<div class="empty">No client profitability data yet.</div>')+'</div>'+
+      '<div class="card panel"><h2>Finance Breakdown</h2><p>Current totals from the CRM finance ledgers.</p><div class="profit-row"><strong>Client Receipts</strong><span></span><span></span><span class="green">'+moneyR(received)+'</span><span></span></div><div class="profit-row"><strong>Allocated</strong><span></span><span></span><span>'+moneyR(allocated)+'</span><span></span></div><div class="profit-row"><strong>Employee / Partner Payments</strong><span></span><span></span><span class="red">'+moneyR(employee)+'</span><span></span></div><div class="profit-row"><strong>Business Expenses</strong><span></span><span></span><span class="red">'+moneyR(business)+'</span><span></span></div><div class="profit-row"><strong>Net Contribution</strong><span></span><span></span><span class="green">'+moneyR(net)+'</span><span></span></div></div></div>'+
+      '<div class="card panel" style="margin-top:17px"><h2>Operational Snapshot</h2><p>Current project and receipt indicators.</p><div class="grid" style="margin-top:12px"><div class="card stat"><div class="label">Total Projects</div><div class="value">'+Number(d.totalProjects||0)+'</div></div><div class="card stat"><div class="label">Active Projects</div><div class="value">'+Number(d.activeProjects||0)+'</div></div><div class="card stat"><div class="label">Overdue Projects</div><div class="value '+(Number(d.overdueProjects||0)>0?'red':'green')+'">'+Number(d.overdueProjects||0)+'</div></div><div class="card stat"><div class="label">Pending Receipts</div><div class="value">'+Number(d.pendingReceipts||0)+'</div></div></div></div>';
+  }
+  window.reports=function(){
+    var c=document.getElementById('content'); if(!c)return;
+    c.innerHTML='<div class="hero"><div><h1>Reports</h1><p>Loading financial and operational performance...</p></div></div><div class="loading">Loading report data...</div>';
+    google.script.run.withSuccessHandler(renderReports).withFailureHandler(function(e){c.innerHTML='<div class="card panel"><div class="notice err">Unable to load reports: '+escR(e&&e.message||e)+'</div></div>';}).getDashboard();
+  };
+})();
+</script>
