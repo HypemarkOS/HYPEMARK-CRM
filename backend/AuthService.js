@@ -1,7 +1,8 @@
 /**
  * HYPEMARK CRM authentication and role-based access control.
- * Authentication uses the Google account identity available to Apps Script.
- * No passwords are stored in the CRM.
+ * The web app executes as the deploying account so CRM data remains protected.
+ * User identity is established through a short-lived email verification code and
+ * bound to Apps Script's temporary active-user key for subsequent requests.
  */
 var PRIMARY_ADMIN_EMAIL = 'namani.ajay@gmail.com';
 var AUTH_ROLES = { ADMIN:'Admin', PARTNER:'Partner', MANAGER:'Manager', EMPLOYEE:'Employee' };
@@ -14,11 +15,17 @@ ROLE_PERMISSIONS[AUTH_ROLES.EMPLOYEE] = [AUTH_PERMISSIONS.DASHBOARD,AUTH_PERMISS
 
 function getCurrentUserEmail_(){
   var email='';
-  try{ email=String(Session.getActiveUser().getEmail()||'').trim().toLowerCase(); }catch(e){}
-  if(!email){
-    try{ email=String(Session.getEffectiveUser().getEmail()||'').trim().toLowerCase(); }catch(e){}
-  }
-  return email;
+  try{email=String(Session.getActiveUser().getEmail()||'').trim().toLowerCase();}catch(e){}
+  if(email)return email;
+  var key='';try{key=String(Session.getTemporaryActiveUserKey()||'').trim();}catch(e){}
+  if(!key)return '';
+  var cache=CacheService.getScriptCache(),session=cache.get('AUTH_SESSION_'+key);
+  if(session)return String(session).trim().toLowerCase();
+  var s=getCRMSpreadsheet_().getSheetByName('Auth Sessions');
+  if(!s||s.getLastRow()<2)return '';
+  var values=s.getDataRange().getValues(),headers=values.shift(),keyIdx=headers.indexOf('Temporary User Key'),emailIdx=headers.indexOf('Email'),statusIdx=headers.indexOf('Status');
+  for(var i=0;i<values.length;i++)if(String(values[i][keyIdx]||'')===key&&String(values[i][statusIdx]||'Active')==='Active')return String(values[i][emailIdx]||'').trim().toLowerCase();
+  return '';
 }
 
 function getAuthContextService_(){
@@ -27,17 +34,10 @@ function getAuthContextService_(){
   var rows=users&&users.getLastRow()>=2?users.getDataRange().getValues():[];
   if(rows.length)rows.shift();
   if(email===PRIMARY_ADMIN_EMAIL&&rows.length===0){
-    var id=generateId_('USR');
-    users.appendRow([id,'Ajay',AUTH_ROLES.ADMIN,email,'Active']);
-    rows=[[id,'Ajay',AUTH_ROLES.ADMIN,email,'Active']];
-    ensureAuthSetup_();
+    var id=generateId_('USR');users.appendRow([id,'Ajay',AUTH_ROLES.ADMIN,email,'Active']);rows=[[id,'Ajay',AUTH_ROLES.ADMIN,email,'Active']];ensureAuthSetup_();
   }
   var found=null;
-  rows.forEach(function(r){
-    if(String(r[3]||'').trim().toLowerCase()===email){
-      found={userId:String(r[0]||''),name:String(r[1]||''),role:String(r[2]||''),email:email,status:String(r[4]||'')};
-    }
-  });
+  rows.forEach(function(r){if(String(r[3]||'').trim().toLowerCase()===email)found={userId:String(r[0]||''),name:String(r[1]||''),role:String(r[2]||''),email:email,status:String(r[4]||'')};});
   if(!email)return{authenticated:false,reason:'identity_unavailable',email:'',name:'',role:'',permissions:[]};
   if(!found)return{authenticated:false,reason:'not_registered',email:email,name:'',role:'',permissions:[]};
   if(found.role===AUTH_ROLES.ADMIN&&email!==PRIMARY_ADMIN_EMAIL)return{authenticated:false,reason:'admin_restricted',email:email,name:found.name,role:found.role,permissions:[]};
@@ -45,57 +45,61 @@ function getAuthContextService_(){
   return{authenticated:true,reason:'ok',userId:found.userId,name:found.name,role:found.role,email:found.email,status:found.status,permissions:ROLE_PERMISSIONS[found.role]||[]};
 }
 
-function requireAuth_(){var ctx=getAuthContextService_();if(!ctx.authenticated)throw new Error('CRM access denied. Please sign in with an authorised Google account.');return ctx;}
+function sendLoginCode(email){
+  email=String(email||'').trim().toLowerCase();
+  if(!email||email.indexOf('@')<1)throw new Error('Enter a valid Google account email.');
+  var user=findUserByEmail_(email);
+  if(!user)throw new Error('This Google account is not registered in HYPEMARK CRM. Ask an Admin to add it in Settings.');
+  if(user.status!=='Active')throw new Error('This CRM account is inactive. Please contact an Admin.');
+  if(user.role===AUTH_ROLES.ADMIN&&email!==PRIMARY_ADMIN_EMAIL)throw new Error('The Admin role is reserved for the primary Admin account.');
+  var code=String(Math.floor(100000+Math.random()*900000));
+  var key='AUTH_OTP_'+getTempUserKey_()+'_'+email.replace(/[^a-z0-9]/g,'_');
+  CacheService.getScriptCache().put(key,code,600);
+  MailApp.sendEmail({to:email,subject:'HYPEMARK CRM verification code',body:'Your HYPEMARK CRM verification code is '+code+'.\n\nThis code expires in 10 minutes. If you did not request it, you can ignore this email.'});
+  return{sent:true};
+}
+
+function verifyLoginCode(email,code){
+  email=String(email||'').trim().toLowerCase();code=String(code||'').trim();
+  var user=findUserByEmail_(email);
+  if(!user)throw new Error('This Google account is not registered in HYPEMARK CRM.');
+  if(user.status!=='Active')throw new Error('This CRM account is inactive.');
+  var key='AUTH_OTP_'+getTempUserKey_()+'_'+email.replace(/[^a-z0-9]/g,'_'),expected=CacheService.getScriptCache().get(key);
+  if(!expected||expected!==code)throw new Error('Invalid or expired verification code. Please request a new code.');
+  var tempKey=getTempUserKey_(),s=getAuthSessionsSheet_(),values=s.getDataRange().getValues(),headers=values.shift(),keyIdx=headers.indexOf('Temporary User Key'),emailIdx=headers.indexOf('Email'),verifiedIdx=headers.indexOf('Verified At'),statusIdx=headers.indexOf('Status'),foundRow=-1;
+  for(var i=0;i<values.length;i++)if(String(values[i][keyIdx]||'')===tempKey){foundRow=i+2;break;}
+  if(foundRow>0)s.getRange(foundRow,1,1,4).setValues([[tempKey,email,new Date(),'Active']]);else s.appendRow([tempKey,email,new Date(),'Active']);
+  CacheService.getScriptCache().put('AUTH_SESSION_'+tempKey,email,21600);
+  CacheService.getScriptCache().remove(key);
+  return{authenticated:true,name:user.name,role:user.role,email:user.email};
+}
+
+function logout(){
+  var key=getTempUserKey_();if(!key)return true;
+  var s=getAuthSessionsSheet_();if(s&&s.getLastRow()>=2){var values=s.getDataRange().getValues(),headers=values.shift(),keyIdx=headers.indexOf('Temporary User Key'),statusIdx=headers.indexOf('Status');for(var i=0;i<values.length;i++)if(String(values[i][keyIdx]||'')===key){s.getRange(i+2,statusIdx+1).setValue('Inactive');break;}}
+  CacheService.getScriptCache().remove('AUTH_SESSION_'+key);return true;
+}
+
+function findUserByEmail_(email){
+  var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);if(!s||s.getLastRow()<2)return null;
+  var values=s.getDataRange().getValues(),h=values.shift();
+  for(var i=0;i<values.length;i++)if(String(values[i][h.indexOf('Email')]||'').trim().toLowerCase()===email)return{userId:String(values[i][h.indexOf('User ID')]||''),name:String(values[i][h.indexOf('Name')]||''),role:String(values[i][h.indexOf('Role')]||''),email:email,status:String(values[i][h.indexOf('Status')]||'')};
+  return null;
+}
+function getTempUserKey_(){var key='';try{key=String(Session.getTemporaryActiveUserKey()||'').trim();}catch(e){}if(!key)throw new Error('Unable to establish a secure browser session. Please reload the CRM.');return key;}
+function getAuthSessionsSheet_(){var ss=getCRMSpreadsheet_(),s=ss.getSheetByName('Auth Sessions');if(!s){s=ss.insertSheet('Auth Sessions');s.getRange(1,1,1,4).setValues([['Temporary User Key','Email','Verified At','Status']]);s.setFrozenRows(1);}return s;}
+
+function requireAuth_(){var ctx=getAuthContextService_();if(!ctx.authenticated)throw new Error('CRM access denied. Please verify your authorised Google account.');return ctx;}
 function requirePermission_(permission){var ctx=requireAuth_();if(ctx.permissions.indexOf(permission)===-1)throw new Error('You do not have permission to access this section.');return ctx;}
 function getAuthContext(){return getAuthContextService_();}
 function getUsers(){requirePermission_(AUTH_PERMISSIONS.USERS);var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);if(!s||s.getLastRow()<2)return[];var v=s.getDataRange().getValues(),h=v.shift();return v.filter(function(r){return r.some(function(x){return x!=='';});}).map(function(r){var o={};h.forEach(function(k,i){o[k]=r[i];});return o;});}
 function saveUser(data){
-  var ctx=requirePermission_(AUTH_PERMISSIONS.USERS);
-  var email=String(data.email||'').trim().toLowerCase(),name=String(data.name||'').trim(),role=String(data.role||AUTH_ROLES.EMPLOYEE).trim(),status=String(data.status||'Active').trim();
-  if(!email||email.indexOf('@')<1)throw new Error('A valid Google account email is required.');
-  if(!ROLE_PERMISSIONS[role])throw new Error('Invalid role.');
-  if(['Active','Inactive'].indexOf(status)<0)throw new Error('Invalid user status.');
-  if(role===AUTH_ROLES.ADMIN&&email!==PRIMARY_ADMIN_EMAIL)throw new Error('The Admin role is reserved exclusively for the primary Admin account.');
-  if(email===PRIMARY_ADMIN_EMAIL&&(role!==AUTH_ROLES.ADMIN||status!=='Active'))throw new Error('The primary Admin account cannot be downgraded or deactivated.');
+  var ctx=requirePermission_(AUTH_PERMISSIONS.USERS);var email=String(data.email||'').trim().toLowerCase(),name=String(data.name||'').trim(),role=String(data.role||AUTH_ROLES.EMPLOYEE).trim(),status=String(data.status||'Active').trim();
+  if(!email||email.indexOf('@')<1)throw new Error('A valid Google account email is required.');if(!ROLE_PERMISSIONS[role])throw new Error('Invalid role.');if(['Active','Inactive'].indexOf(status)<0)throw new Error('Invalid user status.');if(role===AUTH_ROLES.ADMIN&&email!==PRIMARY_ADMIN_EMAIL)throw new Error('The Admin role is reserved exclusively for the primary Admin account.');if(email===PRIMARY_ADMIN_EMAIL&&(role!==AUTH_ROLES.ADMIN||status!=='Active'))throw new Error('The primary Admin account cannot be downgraded or deactivated.');
   var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS),values=s.getDataRange().getValues(),h=values.shift(),emailIdx=h.indexOf('Email');
-  for(var i=0;i<values.length;i++)if(String(values[i][emailIdx]||'').trim().toLowerCase()===email){
-    var userId=String(values[i][0]||''),currentRole=String(values[i][2]||''),currentStatus=String(values[i][4]||'');
-    if(userId===ctx.userId&&status==='Inactive')throw new Error('You cannot deactivate your own account.');
-    if(currentRole===AUTH_ROLES.ADMIN&&email!==PRIMARY_ADMIN_EMAIL)throw new Error('Only the primary Admin account may hold the Admin role.');
-    if(currentRole===AUTH_ROLES.ADMIN&&role!==AUTH_ROLES.ADMIN&&currentStatus==='Active'&&countActiveAdmins_(s)===1)throw new Error('The last active Admin cannot be downgraded.');
-    if(currentRole===AUTH_ROLES.ADMIN&&role!==AUTH_ROLES.ADMIN&&status==='Inactive'&&countActiveAdmins_(s)===1)throw new Error('The last active Admin cannot be deactivated.');
-    s.getRange(i+2,2,1,4).setValues([[name||email.split('@')[0],role,email,status]]);
-    recordActivity_('User',userId,'Updated user: '+email+' · Role: '+role+' · Status: '+status);
-    return{updated:true,email:email};
-  }
-  if(role===AUTH_ROLES.ADMIN&&status==='Inactive')throw new Error('The primary Admin account must be Active.');
-  var newId=generateId_('USR');
-  s.appendRow([newId,name||email.split('@')[0],role,email,status]);
-  recordActivity_('User',newId,'Created user: '+email+' · Role: '+role+' · Status: '+status);
-  return{created:true,email:email,userId:newId};
+  for(var i=0;i<values.length;i++)if(String(values[i][emailIdx]||'').trim().toLowerCase()===email){var userId=String(values[i][0]||''),currentRole=String(values[i][2]||''),currentStatus=String(values[i][4]||'');if(userId===ctx.userId&&status==='Inactive')throw new Error('You cannot deactivate your own account.');if(currentRole===AUTH_ROLES.ADMIN&&email!==PRIMARY_ADMIN_EMAIL)throw new Error('Only the primary Admin account may hold the Admin role.');if(currentRole===AUTH_ROLES.ADMIN&&role!==AUTH_ROLES.ADMIN&&currentStatus==='Active'&&countActiveAdmins_(s)===1)throw new Error('The last active Admin cannot be downgraded.');if(currentRole===AUTH_ROLES.ADMIN&&role!==AUTH_ROLES.ADMIN&&status==='Inactive'&&countActiveAdmins_(s)===1)throw new Error('The last active Admin cannot be deactivated.');s.getRange(i+2,2,1,4).setValues([[name||email.split('@')[0],role,email,status]]);recordActivity_('User',userId,'Updated user: '+email+' · Role: '+role+' · Status: '+status);return{updated:true,email:email};}
+  if(role===AUTH_ROLES.ADMIN&&status==='Inactive')throw new Error('The primary Admin account must be Active.');var newId=generateId_('USR');s.appendRow([newId,name||email.split('@')[0],role,email,status]);recordActivity_('User',newId,'Created user: '+email+' · Role: '+role+' · Status: '+status);return{created:true,email:email,userId:newId};
 }
-function updateUserStatus(userId,status){
-  var ctx=requirePermission_(AUTH_PERMISSIONS.USERS);
-  status=String(status);
-  if(['Active','Inactive'].indexOf(status)<0)throw new Error('Invalid user status.');
-  var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS),values=s.getDataRange().getValues(),h=values.shift(),idIdx=h.indexOf('User ID'),statusIdx=h.indexOf('Status'),emailIdx=h.indexOf('Email'),roleIdx=h.indexOf('Role');
-  for(var i=0;i<values.length;i++)if(String(values[i][idIdx])===String(userId)){
-    var targetRole=String(values[i][roleIdx]||''),targetEmail=String(values[i][emailIdx]||'').trim().toLowerCase();
-    if(String(userId)===String(ctx.userId)&&status==='Inactive')throw new Error('You cannot deactivate your own account.');
-    if(targetRole===AUTH_ROLES.ADMIN&&targetEmail!==PRIMARY_ADMIN_EMAIL)throw new Error('Only the primary Admin account may hold the Admin role.');
-    if(targetRole===AUTH_ROLES.ADMIN&&targetEmail===PRIMARY_ADMIN_EMAIL&&status==='Inactive')throw new Error('The primary Admin account cannot be deactivated.');
-    if(targetRole===AUTH_ROLES.ADMIN&&status==='Inactive'&&countActiveAdmins_(s)===1)throw new Error('The last active Admin cannot be deactivated.');
-    s.getRange(i+2,statusIdx+1).setValue(status);
-    recordActivity_('User',String(userId),'Changed user status: '+targetEmail+' → '+status);
-    return true;
-  }
-  throw new Error('User not found.');
-}
-function countActiveAdmins_(sheet){
-  if(!sheet||sheet.getLastRow()<2)return 0;
-  var values=sheet.getDataRange().getValues(),headers=values.shift(),roleIdx=headers.indexOf('Role'),statusIdx=headers.indexOf('Status');
-  var count=0;
-  values.forEach(function(r){if(String(r[roleIdx]||'')===AUTH_ROLES.ADMIN&&String(r[statusIdx]||'')==='Active')count++;});
-  return count;
-}
-function ensureAuthSetup_(){var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);if(!s)return;var roleCol=s.getRange('C2:C');roleCol.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList([AUTH_ROLES.ADMIN,AUTH_ROLES.PARTNER,AUTH_ROLES.MANAGER,AUTH_ROLES.EMPLOYEE],true).setAllowInvalid(false).build());var statusCol=s.getRange('E2:E');statusCol.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['Active','Inactive'],true).setAllowInvalid(false).build());}
+function updateUserStatus(userId,status){var ctx=requirePermission_(AUTH_PERMISSIONS.USERS);status=String(status);if(['Active','Inactive'].indexOf(status)<0)throw new Error('Invalid status.');var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS),values=s.getDataRange().getValues(),h=values.shift(),idIdx=h.indexOf('User ID'),statusIdx=h.indexOf('Status'),emailIdx=h.indexOf('Email'),roleIdx=h.indexOf('Role');for(var i=0;i<values.length;i++)if(String(values[i][idIdx])===String(userId)){var targetRole=String(values[i][roleIdx]||''),targetEmail=String(values[i][emailIdx]||'').trim().toLowerCase();if(String(userId)===String(ctx.userId)&&status==='Inactive')throw new Error('You cannot deactivate your own account.');if(targetRole===AUTH_ROLES.ADMIN&&targetEmail!==PRIMARY_ADMIN_EMAIL)throw new Error('Only the primary Admin account may hold the Admin role.');if(targetRole===AUTH_ROLES.ADMIN&&targetEmail===PRIMARY_ADMIN_EMAIL&&status==='Inactive')throw new Error('The primary Admin account cannot be deactivated.');if(targetRole===AUTH_ROLES.ADMIN&&status==='Inactive'&&countActiveAdmins_(s)===1)throw new Error('The last active Admin cannot be deactivated.');s.getRange(i+2,statusIdx+1).setValue(status);recordActivity_('User',String(userId),'Changed user status: '+targetEmail+' → '+status);return true;}throw new Error('User not found.');}
+function countActiveAdmins_(sheet){if(!sheet||sheet.getLastRow()<2)return 0;var values=sheet.getDataRange().getValues(),headers=values.shift(),roleIdx=headers.indexOf('Role'),statusIdx=headers.indexOf('Status'),count=0;values.forEach(function(r){if(String(r[roleIdx]||'')===AUTH_ROLES.ADMIN&&String(r[statusIdx]||'')==='Active')count++;});return count;}
+function ensureAuthSetup_(){var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);if(s){s.getRange('C2:C').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList([AUTH_ROLES.ADMIN,AUTH_ROLES.PARTNER,AUTH_ROLES.MANAGER,AUTH_ROLES.EMPLOYEE],true).setAllowInvalid(false).build());s.getRange('E2:E').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['Active','Inactive'],true).setAllowInvalid(false).build());}getAuthSessionsSheet_();}
