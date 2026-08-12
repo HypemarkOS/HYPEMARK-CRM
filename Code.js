@@ -18,7 +18,10 @@ function doGet(e) {
     var activities=HtmlService.createHtmlOutputFromFile('Activities').getContent();
     var settings=HtmlService.createHtmlOutputFromFile('Settings').getContent();
     var html=output.getContent();
-    html=html.replace('</head>',theme+brandFix+premiumShell+'</head>');
+    // Injection order is intentional: PremiumShell establishes the shell, then BrandFix
+    // is injected LAST so its authoritative logo background cannot be reset by a later
+    // .brand background shorthand. Keep BrandFix after PremiumShell for logo integrity.
+    html=html.replace('</head>',theme+premiumShell+brandFix+'</head>');
     html=html.replace('</body>',clientsPro+contentPro+paymentsBalances+reports+activities+settings+projectsPro+'</body>');
     output=HtmlService.createHtmlOutput(html);
   }
