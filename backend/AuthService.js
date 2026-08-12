@@ -57,26 +57,41 @@ function saveUser(data){
   if(!ROLE_PERMISSIONS[role])throw new Error('Invalid role.');
   if(['Active','Inactive'].indexOf(status)<0)throw new Error('Invalid user status.');
   var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS),values=s.getDataRange().getValues(),h=values.shift(),emailIdx=h.indexOf('Email');
-  for(var i=0;i<values.length;i++)if(String(values[i][emailIdx]||'').toLowerCase()===email){
-    var userId=String(values[i][0]||'');
+  for(var i=0;i<values.length;i++)if(String(values[i][emailIdx]||'').trim().toLowerCase()===email){
+    var userId=String(values[i][0]||''),currentRole=String(values[i][2]||''),currentStatus=String(values[i][4]||'');
+    if(userId===ctx.userId&&status==='Inactive')throw new Error('You cannot deactivate your own account.');
+    if(currentRole===AUTH_ROLES.ADMIN&&role!==AUTH_ROLES.ADMIN&&currentStatus==='Active'&&countActiveAdmins_(s)===1)throw new Error('The last active Admin cannot be downgraded.');
+    if(currentRole===AUTH_ROLES.ADMIN&&role!==AUTH_ROLES.ADMIN&&status==='Inactive'&&countActiveAdmins_(s)===1)throw new Error('The last active Admin cannot be deactivated.');
     s.getRange(i+2,2,1,4).setValues([[name||email.split('@')[0],role,email,status]]);
     recordActivity_('User',userId,'Updated user: '+email+' · Role: '+role+' · Status: '+status);
     return{updated:true,email:email};
   }
+  if(role===AUTH_ROLES.ADMIN&&status==='Inactive')throw new Error('A new Admin must be Active.');
   var newId=generateId_('USR');
   s.appendRow([newId,name||email.split('@')[0],role,email,status]);
   recordActivity_('User',newId,'Created user: '+email+' · Role: '+role+' · Status: '+status);
   return{created:true,email:email,userId:newId};
 }
 function updateUserStatus(userId,status){
-  requirePermission_(AUTH_PERMISSIONS.USERS);
-  if(['Active','Inactive'].indexOf(String(status))<0)throw new Error('Invalid user status.');
-  var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS),values=s.getDataRange().getValues(),h=values.shift(),idIdx=h.indexOf('User ID'),statusIdx=h.indexOf('Status'),emailIdx=h.indexOf('Email');
+  var ctx=requirePermission_(AUTH_PERMISSIONS.USERS);
+  status=String(status);
+  if(['Active','Inactive'].indexOf(status)<0)throw new Error('Invalid user status.');
+  var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS),values=s.getDataRange().getValues(),h=values.shift(),idIdx=h.indexOf('User ID'),statusIdx=h.indexOf('Status'),emailIdx=h.indexOf('Email'),roleIdx=h.indexOf('Role');
   for(var i=0;i<values.length;i++)if(String(values[i][idIdx])===String(userId)){
+    var targetRole=String(values[i][roleIdx]||''),targetEmail=String(values[i][emailIdx]||'');
+    if(String(userId)===String(ctx.userId)&&status==='Inactive')throw new Error('You cannot deactivate your own account.');
+    if(targetRole===AUTH_ROLES.ADMIN&&status==='Inactive'&&countActiveAdmins_(s)===1)throw new Error('The last active Admin cannot be deactivated.');
     s.getRange(i+2,statusIdx+1).setValue(status);
-    recordActivity_('User',String(userId),'Changed user status: '+String(values[i][emailIdx]||'')+' → '+status);
+    recordActivity_('User',String(userId),'Changed user status: '+targetEmail+' → '+status);
     return true;
   }
   throw new Error('User not found.');
+}
+function countActiveAdmins_(sheet){
+  if(!sheet||sheet.getLastRow()<2)return 0;
+  var values=sheet.getDataRange().getValues(),headers=values.shift(),roleIdx=headers.indexOf('Role'),statusIdx=headers.indexOf('Status');
+  var count=0;
+  values.forEach(function(r){if(String(r[roleIdx]||'')===AUTH_ROLES.ADMIN&&String(r[statusIdx]||'')==='Active')count++;});
+  return count;
 }
 function ensureAuthSetup_(){var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);if(!s)return;var roleCol=s.getRange('C2:C');roleCol.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList([AUTH_ROLES.ADMIN,AUTH_ROLES.PARTNER,AUTH_ROLES.MANAGER,AUTH_ROLES.EMPLOYEE],true).setAllowInvalid(false).build());var statusCol=s.getRange('E2:E');statusCol.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['Active','Inactive'],true).setAllowInvalid(false).build());}
