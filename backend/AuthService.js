@@ -95,23 +95,3 @@ function countActiveAdmins_(sheet){
   return count;
 }
 function ensureAuthSetup_(){var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);if(!s)return;var roleCol=s.getRange('C2:C');roleCol.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList([AUTH_ROLES.ADMIN,AUTH_ROLES.PARTNER,AUTH_ROLES.MANAGER,AUTH_ROLES.EMPLOYEE],true).setAllowInvalid(false).build());var statusCol=s.getRange('E2:E');statusCol.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['Active','Inactive'],true).setAllowInvalid(false).build());}
-
-/** Temporary one-time recovery for the existing primary Admin account. */
-function recoverPrimaryAdminAccess(){
-  var email=getCurrentUserEmail_();
-  var recoveryEmail='namani.ajay@gmail.com';
-  if(email!==recoveryEmail)throw new Error('Recovery is restricted to the primary Admin account.');
-  var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);
-  if(!s)throw new Error('Users sheet not found.');
-  var values=s.getDataRange().getValues();
-  if(values.length<2)throw new Error('No authorised users found.');
-  var headers=values.shift(),emailIdx=headers.indexOf('Email'),statusIdx=headers.indexOf('Status'),roleIdx=headers.indexOf('Role');
-  for(var i=0;i<values.length;i++){
-    if(String(values[i][emailIdx]||'').trim().toLowerCase()===recoveryEmail){
-      if(String(values[i][roleIdx]||'')!==AUTH_ROLES.ADMIN)throw new Error('Primary account is not an Admin; recovery stopped.');
-      s.getRange(i+2,statusIdx+1).setValue('Active');
-      return {recovered:true,email:recoveryEmail,role:AUTH_ROLES.ADMIN,status:'Active'};
-    }
-  }
-  throw new Error('Primary Admin account was not found.');
-}
