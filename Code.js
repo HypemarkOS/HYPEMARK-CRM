@@ -18,9 +18,10 @@ function doGet(e) {
     var activities=HtmlService.createHtmlOutputFromFile('Activities').getContent();
     var settings=HtmlService.createHtmlOutputFromFile('Settings').getContent();
     var tasks=HtmlService.createHtmlOutputFromFile('Tasks').getContent();
+    var tasksNav=HtmlService.createHtmlOutputFromFile('TasksNav').getContent();
     var html=output.getContent();
     html=html.replace('</head>',theme+premiumShell+brandFix+'</head>');
-    html=html.replace('</body>',clientsPro+contentPro+paymentsBalances+reports+activities+settings+projectsPro+tasks+'</body>');
+    html=html.replace('</body>',clientsPro+contentPro+paymentsBalances+reports+activities+settings+projectsPro+tasks+tasksNav+'</body>');
     output=HtmlService.createHtmlOutput(html);
   }
   return output.setTitle(auth.authenticated?'HYPEMARK CRM':'Sign in | HYPEMARK CRM').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
