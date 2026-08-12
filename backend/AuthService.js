@@ -8,16 +8,7 @@ var AUTH_ROLES = { ADMIN:'Admin', PARTNER:'Partner', MANAGER:'Manager', EMPLOYEE
 var AUTH_PERMISSIONS = { DASHBOARD:'dashboard', CLIENTS:'clients', PROJECTS:'projects', DELIVERABLES:'deliverables', CONTENT:'content', FINANCE_ALL:'finance_all', FINANCE_OWN:'finance_own', PROFITABILITY:'profitability', ACTIVITIES_ALL:'activities_all', ACTIVITIES_OWN:'activities_own', USERS:'users', SETTINGS:'settings' };
 var ROLE_PERMISSIONS = {};
 ROLE_PERMISSIONS[AUTH_ROLES.ADMIN] = Object.keys(AUTH_PERMISSIONS).map(function(k){return AUTH_PERMISSIONS[k];});
-ROLE_PERMISSIONS[AUTH_ROLES.PARTNER] = [
-  AUTH_PERMISSIONS.DASHBOARD,
-  AUTH_PERMISSIONS.CLIENTS,
-  AUTH_PERMISSIONS.PROJECTS,
-  AUTH_PERMISSIONS.DELIVERABLES,
-  AUTH_PERMISSIONS.CONTENT,
-  AUTH_PERMISSIONS.FINANCE_ALL,
-  AUTH_PERMISSIONS.PROFITABILITY,
-  AUTH_PERMISSIONS.ACTIVITIES_ALL
-];
+ROLE_PERMISSIONS[AUTH_ROLES.PARTNER] = [AUTH_PERMISSIONS.DASHBOARD,AUTH_PERMISSIONS.CLIENTS,AUTH_PERMISSIONS.PROJECTS,AUTH_PERMISSIONS.DELIVERABLES,AUTH_PERMISSIONS.CONTENT,AUTH_PERMISSIONS.FINANCE_ALL,AUTH_PERMISSIONS.PROFITABILITY,AUTH_PERMISSIONS.ACTIVITIES_ALL];
 ROLE_PERMISSIONS[AUTH_ROLES.MANAGER] = [AUTH_PERMISSIONS.DASHBOARD,AUTH_PERMISSIONS.CLIENTS,AUTH_PERMISSIONS.PROJECTS,AUTH_PERMISSIONS.DELIVERABLES,AUTH_PERMISSIONS.CONTENT,AUTH_PERMISSIONS.ACTIVITIES_ALL];
 ROLE_PERMISSIONS[AUTH_ROLES.EMPLOYEE] = [AUTH_PERMISSIONS.DASHBOARD,AUTH_PERMISSIONS.PROJECTS,AUTH_PERMISSIONS.DELIVERABLES,AUTH_PERMISSIONS.CONTENT,AUTH_PERMISSIONS.FINANCE_OWN,AUTH_PERMISSIONS.ACTIVITIES_OWN];
 
@@ -35,22 +26,18 @@ function getAuthContextService_(){
   var users=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);
   var rows=users&&users.getLastRow()>=2?users.getDataRange().getValues():[];
   if(rows.length)rows.shift();
-
-  // First-run bootstrap is restricted to the designated primary Admin account.
   if(email===PRIMARY_ADMIN_EMAIL&&rows.length===0){
     var id=generateId_('USR');
     users.appendRow([id,'Ajay',AUTH_ROLES.ADMIN,email,'Active']);
     rows=[[id,'Ajay',AUTH_ROLES.ADMIN,email,'Active']];
     ensureAuthSetup_();
   }
-
   var found=null;
   rows.forEach(function(r){
     if(String(r[3]||'').trim().toLowerCase()===email){
       found={userId:String(r[0]||''),name:String(r[1]||''),role:String(r[2]||''),email:email,status:String(r[4]||'')};
     }
   });
-
   if(!email)return{authenticated:false,reason:'identity_unavailable',email:'',name:'',role:'',permissions:[]};
   if(!found)return{authenticated:false,reason:'not_registered',email:email,name:'',role:'',permissions:[]};
   if(found.role===AUTH_ROLES.ADMIN&&email!==PRIMARY_ADMIN_EMAIL)return{authenticated:false,reason:'admin_restricted',email:email,name:found.name,role:found.role,permissions:[]};
@@ -69,12 +56,12 @@ function saveUser(data){
   if(!ROLE_PERMISSIONS[role])throw new Error('Invalid role.');
   if(['Active','Inactive'].indexOf(status)<0)throw new Error('Invalid user status.');
   if(role===AUTH_ROLES.ADMIN&&email!==PRIMARY_ADMIN_EMAIL)throw new Error('The Admin role is reserved exclusively for the primary Admin account.');
+  if(email===PRIMARY_ADMIN_EMAIL&&(role!==AUTH_ROLES.ADMIN||status!=='Active'))throw new Error('The primary Admin account cannot be downgraded or deactivated.');
   var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS),values=s.getDataRange().getValues(),h=values.shift(),emailIdx=h.indexOf('Email');
   for(var i=0;i<values.length;i++)if(String(values[i][emailIdx]||'').trim().toLowerCase()===email){
     var userId=String(values[i][0]||''),currentRole=String(values[i][2]||''),currentStatus=String(values[i][4]||'');
     if(userId===ctx.userId&&status==='Inactive')throw new Error('You cannot deactivate your own account.');
     if(currentRole===AUTH_ROLES.ADMIN&&email!==PRIMARY_ADMIN_EMAIL)throw new Error('Only the primary Admin account may hold the Admin role.');
-    if(currentRole===AUTH_ROLES.ADMIN&&role!==AUTH_ROLES.ADMIN&&email===PRIMARY_ADMIN_EMAIL)throw new Error('The primary Admin account cannot be downgraded.');
     if(currentRole===AUTH_ROLES.ADMIN&&role!==AUTH_ROLES.ADMIN&&currentStatus==='Active'&&countActiveAdmins_(s)===1)throw new Error('The last active Admin cannot be downgraded.');
     if(currentRole===AUTH_ROLES.ADMIN&&role!==AUTH_ROLES.ADMIN&&status==='Inactive'&&countActiveAdmins_(s)===1)throw new Error('The last active Admin cannot be deactivated.');
     s.getRange(i+2,2,1,4).setValues([[name||email.split('@')[0],role,email,status]]);
