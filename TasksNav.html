@@ -1,21 +1,38 @@
 <script>
 (function(){
+  var pagePermission={dashboard:'dashboard',clients:'clients',projects:'projects',tasks:'tasks',deliverables:'deliverables',content:'content',payments:'finance_own',reports:'profitability',activities:'activities_own',settings:'users'};
+  function applyPermissions(ctx){
+    if(!ctx||!ctx.authenticated)return;
+    var allowed=ctx.permissions||[];
+    document.querySelectorAll('.nav button[data-page]').forEach(function(btn){
+      var p=pagePermission[btn.getAttribute('data-page')];
+      if(p)btn.style.display=allowed.indexOf(p)>=0?'block':'none';
+    });
+    document.querySelectorAll('.nav .section').forEach(function(section){
+      var has=false,el=section.nextElementSibling;
+      while(el&&!el.classList.contains('section')){
+        if(el.tagName==='BUTTON'&&el.style.display!=='none'){has=true;break;}
+        el=el.nextElementSibling;
+      }
+      section.style.display=has?'block':'none';
+    });
+    var user=document.querySelector('.user');
+    if(user)user.textContent=(ctx.name||'User')+' · '+(ctx.role||'');
+  }
   function addTasksNav(){
     var nav=document.querySelector('.nav');
-    if(!nav || nav.querySelector('[data-page="tasks"]')) return;
-    var btn=document.createElement('button');
-    btn.type='button';
-    btn.setAttribute('data-page','tasks');
-    btn.innerHTML='☑ &nbsp; Tasks';
-    btn.onclick=function(){
-      if(typeof window.show==='function') window.show('tasks');
-    };
-    var projects=nav.querySelector('[data-page="projects"]');
-    if(projects) projects.parentNode.insertBefore(btn,projects.nextSibling);
-    else nav.appendChild(btn);
+    if(!nav)return;
+    if(!nav.querySelector('[data-page="tasks"]')){
+      var btn=document.createElement('button');
+      btn.type='button';btn.setAttribute('data-page','tasks');btn.setAttribute('data-permission','tasks');
+      btn.innerHTML='☑ &nbsp; Tasks';
+      btn.onclick=function(){if(typeof window.show==='function')window.show('tasks');};
+      var projects=nav.querySelector('[data-page="projects"]');
+      if(projects)projects.parentNode.insertBefore(btn,projects.nextSibling);else nav.appendChild(btn);
+    }
+    google.script.run.withSuccessHandler(applyPermissions).withFailureHandler(function(e){console.log(e);}).getAuthContext();
   }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',addTasksNav);
-  else addTasksNav();
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addTasksNav);else addTasksNav();
   window.addEventListener('load',addTasksNav);
 })();
 </script>
