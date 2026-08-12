@@ -1,5 +1,5 @@
-<style id="hm-brand-fix-v9">
-/* Exact HYPEMARK logo: preserve the complete monogram + wordmark inside the existing shell. */
+<style id="hm-brand-fix-v10">
+/* Exact HYPEMARK logo. Artwork is unchanged. Only the presentation gets a subtle premium 3D hover treatment. */
 .brand{
   position:relative!important;
   height:184px!important;
@@ -14,6 +14,7 @@
   border-radius:24px!important;
   background:#fff!important;
   box-shadow:0 12px 30px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.9)!important;
+  perspective:800px!important;
 }
 .brand > svg{
   display:block!important;
@@ -23,10 +24,20 @@
   max-height:calc(100% - 24px)!important;
   overflow:visible!important;
   flex:0 0 auto!important;
+  transform:translateZ(0) translateY(0) scale(1)!important;
+  transform-origin:center center!important;
+  filter:drop-shadow(0 2px 0 rgba(0,0,0,.14)) drop-shadow(0 7px 7px rgba(0,0,0,.20))!important;
+  transition:transform .28s cubic-bezier(.2,.8,.2,1),filter .28s ease!important;
+  will-change:transform,filter!important;
+}
+.brand > svg:hover{
+  transform:translateZ(18px) translateY(-6px) scale(1.07) rotateX(3deg)!important;
+  filter:drop-shadow(0 3px 0 rgba(0,0,0,.18)) drop-shadow(0 13px 12px rgba(0,0,0,.28))!important;
 }
 @media(max-width:700px){
-  .brand{height:76px!important;border-radius:18px!important;margin-bottom:12px!important}
+  .brand{height:76px!important;border-radius:18px!important;margin-bottom:12px!important;perspective:600px!important}
   .brand > svg{height:58px!important;max-width:82%!important}
+  .brand > svg:hover{transform:translateZ(8px) translateY(-3px) scale(1.04)!important}
 }
 </style>
 <script>
