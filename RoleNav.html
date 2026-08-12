@@ -21,6 +21,7 @@
     var allowed={};(ctx.permissions||[]).forEach(function(p){allowed[p]=true;});
     document.querySelectorAll('.nav button[data-page]').forEach(function(btn){var page=btn.getAttribute('data-page'),perm=pagePermission[page];if(perm&&!allowed[perm])btn.remove();});
     document.querySelectorAll('.nav .section').forEach(function(section){var next=section.nextElementSibling,has=false;while(next&&!next.classList.contains('section')){if(next.matches&&next.matches('button[data-page]')){has=true;break;}next=next.nextElementSibling;}if(!has)section.remove();});
+    if(ctx.role==='Employee'){var taskAdd=document.getElementById('taskAdd');if(taskAdd)taskAdd.remove();}
     var user=document.querySelector('.user');if(user)user.textContent=(ctx.name||'User')+' · '+(ctx.role||'');
     observeDashboardFinance(ctx);
   }
