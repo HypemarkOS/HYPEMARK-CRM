@@ -1,4 +1,5 @@
-<style id="hm-brand-fix-v7">
+<style id="hm-brand-fix-v9">
+/* Exact HYPEMARK logo: preserve the complete monogram + wordmark inside the existing shell. */
 .brand{
   position:relative!important;
   height:184px!important;
@@ -16,19 +17,21 @@
 }
 .brand > svg{
   display:block!important;
-  width:86%!important;
-  max-width:260px!important;
-  height:auto!important;
+  width:auto!important;
+  height:148px!important;
+  max-width:88%!important;
+  max-height:calc(100% - 24px)!important;
   overflow:visible!important;
+  flex:0 0 auto!important;
 }
 @media(max-width:700px){
   .brand{height:76px!important;border-radius:18px!important;margin-bottom:12px!important}
-  .brand > svg{width:48px!important}
+  .brand > svg{height:58px!important;max-width:82%!important}
 }
 </style>
 <script>
 (function(){
-  var exactLogoSvg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 536 386" role="img" aria-label="HYPEMARK"><g fill="#e51b23"><path d="M197.0,8.0 L197.0,91.0 L192.0,91.0 L165.0,75.0 L150.0,69.0 L146.0,65.0 L143.0,66.0 L143.0,201.0 L164.0,201.0 L164.0,100.0 L168.0,99.0 L172.0,103.0 L196.0,115.0 L198.0,119.0 L197.0,266.0 L217.0,266.0 L218.0,9.0 Z"/><path d="M319.0,8.0 L319.0,103.0 L270.0,130.0 L258.0,126.0 L229.0,111.0 L229.0,134.0 L269.0,154.0 L372.0,99.0 L373.0,201.0 L394.0,201.0 L393.0,64.0 L341.0,92.0 L340.0,8.0 Z"/><path d="M337.0,131.0 L319.0,142.0 L320.0,266.0 L340.0,266.0 L340.0,132.0 Z"/></g><g fill="#2b0505"><path d="M8.0,334.0 L8.0,377.0 L18.0,378.0 L19.0,359.0 L38.0,359.0 L40.0,362.0 L40.0,378.0 L49.0,378.0 L49.0,334.0 L39.0,335.0 L38.0,352.0 L19.0,352.0 L18.0,334.0 Z"/><path d="M75.0,334.0 L92.0,362.0 L92.0,378.0 L102.0,378.0 L102.0,362.0 L119.0,334.0 L109.0,334.0 L97.0,353.0 L85.0,334.0 Z"/><path d="M173.0,335.0 L144.0,334.0 L144.0,378.0 L154.0,378.0 L155.0,365.0 L170.0,365.0 L180.0,359.0 L183.0,347.0 L180.0,340.0 Z"/><path d="M211.0,334.0 L211.0,378.0 L246.0,378.0 L245.0,370.0 L221.0,369.0 L222.0,359.0 L242.0,359.0 L242.0,352.0 L222.0,352.0 L221.0,342.0 L244.0,341.0 L245.0,335.0 Z"/><path d="M274.0,334.0 L274.0,378.0 L283.0,378.0 L284.0,351.0 L297.0,373.0 L302.0,373.0 L315.0,352.0 L316.0,378.0 L325.0,377.0 L324.0,334.0 L316.0,334.0 L300.0,361.0 L282.0,334.0 Z"/><path d="M368.0,334.0 L348.0,378.0 L358.0,378.0 L363.0,368.0 L383.0,368.0 L388.0,378.0 L398.0,378.0 L379.0,335.0 Z"/><path d="M422.0,334.0 L422.0,378.0 L431.0,378.0 L432.0,365.0 L441.0,365.0 L450.0,378.0 L461.0,378.0 L452.0,366.0 L452.0,363.0 L458.0,358.0 L460.0,353.0 L460.0,345.0 L457.0,339.0 L447.0,334.0 Z"/><path d="M486.0,334.0 L486.0,378.0 L496.0,378.0 L496.0,367.0 L502.0,360.0 L517.0,378.0 L528.0,378.0 L509.0,354.0 L527.0,334.0 L516.0,334.0 L497.0,355.0 L496.0,334.0 Z"/></g></svg>';
+  var exactLogoSvg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 536 386" role="img" aria-label="HYPEMARK"><g fill="#e51b23"><path d="M197 8V91h-5l-27-16-15-6-4-4-3 1v135h21V100l4-1 4 4 24 12 2 4-1 147h20V9z"/><path d="M319 8v95l-49 27-12-4-29-15v23l40 20 103-55 1 102h21V64l-52 28-1-84z"/><path d="M337 131l-18 11 1 124h20V132z"/></g><g fill="#2b0505"><path d="M8 334v43l10 1 1-19h19l2 3v16h9v-44l-10 1-1 17H19l-1-18z"/><path d="M75 334l17 28v16h10v-16l17-28h-10l-12 19-12-19z"/><path d="M173 335h-29v43h10v-13h15l10-6 4-12-3-7z"/><path d="M211 334v44h35l-1-8h-24l1-11h20v-7h-20l-1-10h23l1-7z"/><path d="M274 334v44h9l1-27 13 22h5l13-21 1 26 8-1-1-43h-8l-16 27-18-27z"/><path d="M368 334l-20 44h10l5-10h20l5 10h10l-19-43zm5 10l7 17h-14z"/><path d="M422 334v44h9l1-13h9l9 13h11l-9-12v-3l6-5 2-5v-8l-3-6-10-5z"/><path d="M486 334v44h10v-11l6-7 15 18h11l-19-24 18-20h-11l-19 21v-21z"/></g></svg>';
   function renderExactHypeMark(){
     var brand=document.querySelector('.brand');
     if(!brand)return;
