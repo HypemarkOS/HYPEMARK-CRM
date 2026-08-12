@@ -1,0 +1,21 @@
+<script>
+(function(){
+  function addTasksNav(){
+    var nav=document.querySelector('.nav');
+    if(!nav || nav.querySelector('[data-page="tasks"]')) return;
+    var btn=document.createElement('button');
+    btn.type='button';
+    btn.setAttribute('data-page','tasks');
+    btn.innerHTML='☑ &nbsp; Tasks';
+    btn.onclick=function(){
+      if(typeof window.show==='function') window.show('tasks');
+    };
+    var projects=nav.querySelector('[data-page="projects"]');
+    if(projects) projects.parentNode.insertBefore(btn,projects.nextSibling);
+    else nav.appendChild(btn);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',addTasksNav);
+  else addTasksNav();
+  window.addEventListener('load',addTasksNav);
+})();
+</script>
