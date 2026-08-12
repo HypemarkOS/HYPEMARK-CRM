@@ -10,18 +10,22 @@
     var quick=content.querySelectorAll('.quick button');quick.forEach(function(btn){if(String(btn.textContent||'').toLowerCase().indexOf('payment')>=0)btn.style.display='none';});
     var visibleStats=content.querySelectorAll('#stats > .card');if(visibleStats.length===4){visibleStats[2].style.display='none';visibleStats[3].style.display='none';}
   }
+  function restrictEmployeeActions(ctx){
+    if(!ctx||ctx.role!=='Employee')return;
+    var taskAdd=document.getElementById('taskAdd');if(taskAdd)taskAdd.remove();
+  }
   function observeDashboardFinance(ctx){
     if(ctx.permissions.indexOf('finance_all')>=0)return;
     var content=document.getElementById('content');if(!content)return;
     hideDashboardFinance();
-    if(window.MutationObserver){new MutationObserver(function(){hideDashboardFinance();}).observe(content,{childList:true,subtree:true});}
+    restrictEmployeeActions(ctx);
+    if(window.MutationObserver){new MutationObserver(function(){hideDashboardFinance();restrictEmployeeActions(ctx);}).observe(content,{childList:true,subtree:true});}
   }
   function applyRoleNav(ctx){
     if(!ctx||!ctx.authenticated)return;
     var allowed={};(ctx.permissions||[]).forEach(function(p){allowed[p]=true;});
     document.querySelectorAll('.nav button[data-page]').forEach(function(btn){var page=btn.getAttribute('data-page'),perm=pagePermission[page];if(perm&&!allowed[perm])btn.remove();});
     document.querySelectorAll('.nav .section').forEach(function(section){var next=section.nextElementSibling,has=false;while(next&&!next.classList.contains('section')){if(next.matches&&next.matches('button[data-page]')){has=true;break;}next=next.nextElementSibling;}if(!has)section.remove();});
-    if(ctx.role==='Employee'){var taskAdd=document.getElementById('taskAdd');if(taskAdd)taskAdd.remove();}
     var user=document.querySelector('.user');if(user)user.textContent=(ctx.name||'User')+' · '+(ctx.role||'');
     observeDashboardFinance(ctx);
   }
