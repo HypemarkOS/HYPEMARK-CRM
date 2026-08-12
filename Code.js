@@ -43,7 +43,7 @@ function getPaymentsForUser_(ctx,clientId,type){return getPaymentsService_(clien
 function getActivitiesForUser_(ctx){return getActivitiesService_().filter(function(a){return String(a.User||'').trim().toLowerCase()===String(ctx.name||'').trim().toLowerCase();});}
 function getTaskOptions(){return getTaskOptionsService_();}
 function getTasks(){return getTasksService_();}
-function createTask(data){return createTaskService_(data);}
+function createTask(data){var c=requireAuth_();if(['Admin','Manager'].indexOf(c.role)<0)throw new Error('Only Admin or Manager can create tasks.');return createTaskService_(data);}
 function updateTask(id,data){return updateTaskService_(id,data);}
 function deleteTask(id){return deleteTaskService_(id);}
 function getTaskUpdates(id){return getTaskUpdatesService_(id);}
