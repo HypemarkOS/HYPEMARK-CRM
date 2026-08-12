@@ -17,12 +17,10 @@ function doGet(e) {
     var reports=HtmlService.createHtmlOutputFromFile('Reports').getContent();
     var activities=HtmlService.createHtmlOutputFromFile('Activities').getContent();
     var settings=HtmlService.createHtmlOutputFromFile('Settings').getContent();
+    var tasks=HtmlService.createHtmlOutputFromFile('Tasks').getContent();
     var html=output.getContent();
-    // Injection order is intentional: PremiumShell establishes the shell, then BrandFix
-    // is injected LAST so its authoritative logo background cannot be reset by a later
-    // .brand background shorthand. Keep BrandFix after PremiumShell for logo integrity.
     html=html.replace('</head>',theme+premiumShell+brandFix+'</head>');
-    html=html.replace('</body>',clientsPro+contentPro+paymentsBalances+reports+activities+settings+projectsPro+'</body>');
+    html=html.replace('</body>',clientsPro+contentPro+paymentsBalances+reports+activities+settings+projectsPro+tasks+'</body>');
     output=HtmlService.createHtmlOutput(html);
   }
   return output.setTitle(auth.authenticated?'HYPEMARK CRM':'Sign in | HYPEMARK CRM').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -43,3 +41,11 @@ function getActivities(){var ctx=requireAuth_();if(ctx.permissions.indexOf(AUTH_
 function getDashboard(){var ctx=requirePermission_(AUTH_PERMISSIONS.DASHBOARD);var d=getDashboardService_();if(ctx.permissions.indexOf(AUTH_PERMISSIONS.FINANCE_ALL)<0){d.clientReceipts=0;d.employeePayments=0;d.miscExpenses=0;d.totalExpenses=0;d.netContribution=0;d.allocatedAmount=0;d.unallocatedAmount=0;d.pendingReceipts=0;d.clientProfitability=[];}if(ctx.permissions.indexOf(AUTH_PERMISSIONS.ACTIVITIES_ALL)<0)d.recentActivities=getActivitiesForUser_(ctx);return d;}
 function getPaymentsForUser_(ctx,clientId,type){return getPaymentsService_(clientId,type).filter(function(p){return p.Type!=='Employee Payment'||String(p.Employee||'').trim().toLowerCase()===String(ctx.name||'').trim().toLowerCase();});}
 function getActivitiesForUser_(ctx){return getActivitiesService_().filter(function(a){return String(a.User||'').trim().toLowerCase()===String(ctx.name||'').trim().toLowerCase();});}
+function getTaskOptions(){return getTaskOptionsService_();}
+function getTasks(){return getTasksService_();}
+function createTask(data){return createTaskService_(data);}
+function updateTask(id,data){return updateTaskService_(id,data);}
+function deleteTask(id){return deleteTaskService_(id);}
+function getTaskUpdates(id){return getTaskUpdatesService_(id);}
+function getTaskDashboardStats(){return getTaskDashboardStatsService_();}
+function approveTask(id,approved,notes){return approveTaskService_(id,approved,notes);}
