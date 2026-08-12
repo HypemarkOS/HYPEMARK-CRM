@@ -1,5 +1,4 @@
-<style id="hm-brand-fix-v6">
-/* Deterministic brand renderer. The logo is rebuilt as inline SVG inside the existing shell node. */
+<style id="hm-brand-fix-v7">
 .brand{
   position:relative!important;
   height:184px!important;
@@ -18,49 +17,29 @@
 .brand > svg{
   display:block!important;
   width:86%!important;
-  max-width:245px!important;
+  max-width:260px!important;
   height:auto!important;
   overflow:visible!important;
-}
-.brand > svg text{
-  font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif!important;
-  font-size:38px!important;
-  font-weight:900!important;
-  letter-spacing:-2.2px!important;
-  fill:#0b0f14!important;
-}
-.brand > svg .hm-red{fill:#e51b23!important}
-.brand::after{
-  content:"";
-  position:absolute!important;
-  left:50%!important;
-  bottom:24px!important;
-  width:44px!important;
-  height:4px!important;
-  transform:translateX(-50%)!important;
-  border-radius:999px!important;
-  background:#e51b23!important;
 }
 @media(max-width:700px){
   .brand{height:76px!important;border-radius:18px!important;margin-bottom:12px!important}
   .brand > svg{width:48px!important}
-  .brand > svg text{font-size:34px!important;letter-spacing:-2px!important}
-  .brand::after{bottom:14px!important;width:24px!important;height:3px!important}
 }
 </style>
 <script>
 (function(){
-  function renderHypeMarkLogo(){
+  var exactLogoSvg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 536 386" role="img" aria-label="HYPEMARK"><g fill="#e51b23"><path d="M197.0,8.0 L197.0,91.0 L192.0,91.0 L165.0,75.0 L150.0,69.0 L146.0,65.0 L143.0,66.0 L143.0,201.0 L164.0,201.0 L164.0,100.0 L168.0,99.0 L172.0,103.0 L196.0,115.0 L198.0,119.0 L197.0,266.0 L217.0,266.0 L218.0,9.0 Z"/><path d="M319.0,8.0 L319.0,103.0 L270.0,130.0 L258.0,126.0 L229.0,111.0 L229.0,134.0 L269.0,154.0 L372.0,99.0 L373.0,201.0 L394.0,201.0 L393.0,64.0 L341.0,92.0 L340.0,8.0 Z"/><path d="M337.0,131.0 L319.0,142.0 L320.0,266.0 L340.0,266.0 L340.0,132.0 Z"/></g><g fill="#2b0505"><path d="M8.0,334.0 L8.0,377.0 L18.0,378.0 L19.0,359.0 L38.0,359.0 L40.0,362.0 L40.0,378.0 L49.0,378.0 L49.0,334.0 L39.0,335.0 L38.0,352.0 L19.0,352.0 L18.0,334.0 Z"/><path d="M75.0,334.0 L92.0,362.0 L92.0,378.0 L102.0,378.0 L102.0,362.0 L119.0,334.0 L109.0,334.0 L97.0,353.0 L85.0,334.0 Z"/><path d="M173.0,335.0 L144.0,334.0 L144.0,378.0 L154.0,378.0 L155.0,365.0 L170.0,365.0 L180.0,359.0 L183.0,347.0 L180.0,340.0 Z"/><path d="M211.0,334.0 L211.0,378.0 L246.0,378.0 L245.0,370.0 L221.0,369.0 L222.0,359.0 L242.0,359.0 L242.0,352.0 L222.0,352.0 L221.0,342.0 L244.0,341.0 L245.0,335.0 Z"/><path d="M274.0,334.0 L274.0,378.0 L283.0,378.0 L284.0,351.0 L297.0,373.0 L302.0,373.0 L315.0,352.0 L316.0,378.0 L325.0,377.0 L324.0,334.0 L316.0,334.0 L300.0,361.0 L282.0,334.0 Z"/><path d="M368.0,334.0 L348.0,378.0 L358.0,378.0 L363.0,368.0 L383.0,368.0 L388.0,378.0 L398.0,378.0 L379.0,335.0 Z"/><path d="M422.0,334.0 L422.0,378.0 L431.0,378.0 L432.0,365.0 L441.0,365.0 L450.0,378.0 L461.0,378.0 L452.0,366.0 L452.0,363.0 L458.0,358.0 L460.0,353.0 L460.0,345.0 L457.0,339.0 L447.0,334.0 Z"/><path d="M486.0,334.0 L486.0,378.0 L496.0,378.0 L496.0,367.0 L502.0,360.0 L517.0,378.0 L528.0,378.0 L509.0,354.0 L527.0,334.0 L516.0,334.0 L497.0,355.0 L496.0,334.0 Z"/></g></svg>';
+  function renderExactHypeMark(){
     var brand=document.querySelector('.brand');
     if(!brand)return;
-    brand.innerHTML='<svg viewBox="0 0 260 64" role="img" aria-label="HYPEMARK CRM" xmlns="http://www.w3.org/2000/svg"><text x="130" y="45" text-anchor="middle">HYPE<tspan class="hm-red">MARK</tspan></text></svg>';
-    brand.setAttribute('aria-label','HYPEMARK CRM');
+    brand.innerHTML=exactLogoSvg;
+    brand.setAttribute('aria-label','HYPEMARK');
   }
   if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',renderHypeMarkLogo);
+    document.addEventListener('DOMContentLoaded',renderExactHypeMark);
   }else{
-    renderHypeMarkLogo();
+    renderExactHypeMark();
   }
-  window.addEventListener('load',renderHypeMarkLogo);
+  window.addEventListener('load',renderExactHypeMark);
 })();
 </script>
