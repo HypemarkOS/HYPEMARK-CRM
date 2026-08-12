@@ -1,0 +1,22 @@
+<script>
+(function(){
+  var pagePermission={dashboard:'dashboard',clients:'clients',projects:'projects',tasks:'tasks',deliverables:'deliverables',content:'content',payments:'finance_own',reports:'profitability',activities:'activities_own',settings:'settings'};
+  function applyRoleNav(ctx){
+    if(!ctx||!ctx.authenticated)return;
+    var allowed={};(ctx.permissions||[]).forEach(function(p){allowed[p]=true;});
+    document.querySelectorAll('.nav button[data-page]').forEach(function(btn){
+      var page=btn.getAttribute('data-page'),perm=pagePermission[page];
+      if(perm&&!allowed[perm])btn.remove();
+    });
+    document.querySelectorAll('.nav .section').forEach(function(section){
+      var next=section.nextElementSibling,has=false;
+      while(next&&!next.classList.contains('section')){if(next.matches&&next.matches('button[data-page]')){has=true;break;}next=next.nextElementSibling;}
+      if(!has)section.remove();
+    });
+    var user=document.querySelector('.user');
+    if(user)user.textContent=(ctx.name||'User')+' · '+(ctx.role||'');
+  }
+  function init(){if(typeof google==='undefined'||!google.script||!google.script.run)return;google.script.run.withSuccessHandler(applyRoleNav).withFailureHandler(function(){}).getAuthContext();}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
