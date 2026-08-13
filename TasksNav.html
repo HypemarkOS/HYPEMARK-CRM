@@ -31,6 +31,67 @@
       if(projects)projects.parentNode.insertBefore(btn,projects.nextSibling);else nav.appendChild(btn);
     }
     google.script.run.withSuccessHandler(applyPermissions).withFailureHandler(function(e){console.log(e);}).getAuthContext();
+    installTaskCreationFallback();
+  }
+  function call(name,args,ok,fail){var r=google.script.run.withSuccessHandler(ok||function(){}).withFailureHandler(fail||function(e){console.log(e);});return args===undefined?r[name]():r[name].apply(r,args);}
+  function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];});}
+  function installTaskCreationFallback(){
+    if(window.__hmTaskCreationFallbackInstalled)return;
+    window.__hmTaskCreationFallbackInstalled=true;
+    var attempts=0;
+    function check(){
+      attempts++;
+      var b=document.getElementById('taskAdd');
+      if(!b){if(attempts<20)setTimeout(check,500);return;}
+      if(b.disabled&&/Loading task options/i.test(b.textContent||'')){
+        setTimeout(function(){
+          var current=document.getElementById('taskAdd');
+          if(current&&current.disabled&&/Loading task options/i.test(current.textContent||'')){
+            current.disabled=false;
+            current.textContent='＋ Create Task';
+            current.title='Create a task using the CRM data directly';
+            current.onclick=function(){openFallbackTaskCreate();};
+          }
+        },3500);
+      }
+      if(attempts<20)setTimeout(check,500);
+    }
+    check();
+  }
+  function openFallbackTaskCreate(){
+    var m=document.getElementById('modalBg'),body=document.getElementById('modalBody'),title=document.getElementById('modalTitle');
+    if(!m||!body){if(window.toast)toast('Unable to open Create Task.','err');return;}
+    if(title)title.textContent='Create Task';
+    body.innerHTML='<div class="form-grid"><div class="field full"><label>Task Name *</label><input id="fbName"></div><div class="field"><label>Client *</label><select id="fbClient"><option value="">Loading clients...</option></select></div><div class="field"><label>Project *</label><select id="fbProject"><option value="">Select project</option></select></div><div class="field"><label>Deliverable</label><select id="fbDeliverable"><option value="">None</option></select></div><div class="field"><label>Assigned To *</label><select id="fbAssign"><option value="">Loading employees...</option></select></div><div class="field"><label>Priority</label><select id="fbPriority"><option>Low</option><option selected>Medium</option><option>High</option><option>Critical</option></select></div><div class="field"><label>Status</label><select id="fbStatus"><option selected>To Do</option><option>In Progress</option><option>Pending Review</option><option>Completed</option><option>On Hold</option></select></div><div class="field"><label>Start Date</label><input id="fbStart" type="date"></div><div class="field"><label>Due Date</label><input id="fbDue" type="date"></div><div class="field full"><label>Progress / Notes</label><textarea id="fbNotes" placeholder="Add progress, blockers or handoff notes..."></textarea></div></div><div class="form-actions"><button id="fbClose" class="secondary">Close</button><button id="fbSave" class="primary" disabled>Loading options...</button></div>';
+    m.classList.add('show');
+    document.getElementById('fbClose').onclick=function(){m.classList.remove('show');};
+    loadFallbackOptions();
+  }
+  function loadFallbackOptions(){
+    var state={clients:[],projects:[],deliverables:[],assignees:[]},pending=4,failed=[];
+    function done(key,value){state[key]=Array.isArray(value)?value:[];pending--;if(pending===0)renderFallbackOptions(state,failed);}
+    call('getClients',undefined,function(x){done('clients',x);},function(e){failed.push('clients');done('clients',[]);});
+    call('getDeliverables',undefined,function(x){done('deliverables',x);},function(e){failed.push('deliverables');done('deliverables',[]);});
+    call('getDeliverableAssignees',undefined,function(x){done('assignees',x);},function(e){failed.push('assignees');done('assignees',[]);});
+    call('getProjects',undefined,function(x){done('projects',x);},function(e){failed.push('projects');done('projects',[]);});
+  }
+  function renderFallbackOptions(s,failed){
+    var c=document.getElementById('fbClient'),a=document.getElementById('fbAssign'),p=document.getElementById('fbProject'),d=document.getElementById('fbDeliverable'),save=document.getElementById('fbSave');
+    if(!c||!a||!p||!d||!save)return;
+    c.innerHTML='<option value="">Select client</option>'+s.clients.map(function(x){return'<option value="'+esc(x['Client ID'])+'">'+esc(x['Business Name']||x['Client Name'])+'</option>';}).join('');
+    a.innerHTML='<option value="">Select assignee</option>'+s.assignees.map(function(x){return'<option value="'+esc(x.name)+'">'+esc(x.name)+' · '+esc(x.role)+'</option>';}).join('');
+    function fillProjects(){var cid=c.value;var list=s.projects.filter(function(x){return !cid||String(x['Client ID'])===String(cid);});p.innerHTML='<option value="">Select project</option>'+list.map(function(x){return'<option value="'+esc(x['Project ID'])+'">'+esc(x['Project Name'])+'</option>';}).join('');d.innerHTML='<option value="">None</option>';}
+    function fillDeliverables(){var pid=p.value;var list=s.deliverables.filter(function(x){return String(x['Project ID'])===String(pid);});d.innerHTML='<option value="">None</option>'+list.map(function(x){return'<option value="'+esc(x['Deliverable ID'])+'">'+esc(x.Type)+'</option>';}).join('');}
+    c.onchange=fillProjects;p.onchange=fillDeliverables;fillProjects();
+    if(failed.length){save.disabled=true;save.textContent='Options unavailable';if(window.toast)toast('Some task creation options could not be loaded: '+failed.join(', '),'err');return;}
+    save.disabled=false;save.textContent='Create Task';save.onclick=function(){saveFallbackTask();};
+  }
+  function saveFallbackTask(){
+    var name=document.getElementById('fbName').value.trim(),cid=document.getElementById('fbClient').value,pid=document.getElementById('fbProject').value,did=document.getElementById('fbDeliverable').value,a=document.getElementById('fbAssign').value;
+    if(!name||!cid||!pid||!a){if(window.toast)toast('Task name, client, project and assignee are required.','err');return;}
+    var b=document.getElementById('fbSave');b.disabled=true;b.textContent='Creating...';
+    var data={taskName:name,clientId:cid,projectId:pid,deliverableId:did,assignedTo:a,priority:document.getElementById('fbPriority').value,status:document.getElementById('fbStatus').value,startDate:document.getElementById('fbStart').value,dueDate:document.getElementById('fbDue').value,notes:document.getElementById('fbNotes').value};
+    call('createTask',[data],function(){var m=document.getElementById('modalBg');if(m)m.classList.remove('show');if(typeof window.showTasksPage==='function')window.showTasksPage();if(window.toast)toast('Task created successfully.','ok');},function(e){b.disabled=false;b.textContent='Create Task';if(window.toast)toast(e.message||String(e),'err');});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addTasksNav);else addTasksNav();
   window.addEventListener('load',addTasksNav);
