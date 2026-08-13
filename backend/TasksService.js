@@ -35,3 +35,16 @@ function parseTaskDate_(v){if(!v)return null;var d=v instanceof Date?new Date(v)
 function activeAssignee_(name,c){if(c.role==='Employee')return asText_(name).toLowerCase()===asText_(c.name).toLowerCase();var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);if(!s||s.getLastRow()<2)return false;var v=s.getDataRange().getValues();v.shift();return v.some(function(r){return asText_(r[1]).toLowerCase()===asText_(name).toLowerCase()&&r[4]==='Active';});}
 function notifyTask_(name,subject,body){try{var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);if(!s||s.getLastRow()<2)return;var v=s.getDataRange().getValues();v.shift();for(var i=0;i<v.length;i++)if(asText_(v[i][1]).toLowerCase()===asText_(name).toLowerCase()&&v[i][4]==='Active'&&v[i][3]){MailApp.sendEmail(String(v[i][3]),subject,body);return;}}catch(e){console.log(e);}}
 function notifyReviewers_(t){try{var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);if(!s||s.getLastRow()<2)return;var v=s.getDataRange().getValues();v.shift();var e=[];v.forEach(function(r){if(r[4]==='Active'&&['Admin','Manager'].indexOf(String(r[2]))>=0&&r[3]&&e.indexOf(String(r[3]))<0)e.push(String(r[3]));});if(e.length)MailApp.sendEmail(e.join(','),'Task ready for review: '+t['Task Name'],'Task '+t['Task Name']+' has been submitted for review in HYPEMARK CRM.');}catch(x){console.log(x);}}
+function getDeliverableTaskSummaryService_(deliverableId){
+  requireAuth_();
+  var id=asText_(deliverableId);
+  if(!id) throw new Error('Deliverable ID is required.');
+  var s=ensureTaskSheets_().tasks;
+  var out={deliverableId:id,total:0,completed:0,inProgress:0,pendingReview:0,toDo:0,onHold:0,overdue:0,progress:0};
+  if(s.getLastRow()<2)return out;
+  var v=s.getDataRange().getValues(),h=v.shift(),di=h.indexOf('Deliverable ID'),si=h.indexOf('Status'),dui=h.indexOf('Due Date');
+  var today=new Date();today.setHours(0,0,0,0);
+  v.forEach(function(r){if(String(r[di]||'')!==id)return;out.total++;var st=asText_(r[si]);if(st==='Completed')out.completed++;else if(st==='In Progress')out.inProgress++;else if(st==='Pending Review')out.pendingReview++;else if(st==='To Do')out.toDo++;else if(st==='On Hold')out.onHold++;var due=parseTaskDate_(r[dui]);if(due&&due<today&&st!=='Completed')out.overdue++;});
+  out.progress=out.total?Math.round((out.completed/out.total)*100):0;
+  return out;
+}
