@@ -1,7 +1,20 @@
-var DELIVERABLE_HEADERS = ['Deliverable ID','Project ID','Type','Quantity','Status','Priority','Due Date'];
+var DELIVERABLE_HEADERS = ['Deliverable ID','Project ID','Type','Quantity','Status','Priority','Assigned To','Start Date','Due Date','Notes'];
+
+function ensureDeliverableSchema_() {
+  var sheet = getCRMSpreadsheet_().getSheetByName(APP.SHEETS.DELIVERABLES);
+  if (!sheet) return;
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var current = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var changed = false;
+  DELIVERABLE_HEADERS.forEach(function(header) {
+    if (current.indexOf(header) < 0) { current.push(header); changed = true; }
+  });
+  if (changed) sheet.getRange(1, 1, 1, current.length).setValues([current]);
+}
 
 function createDeliverableService_(data) {
   data = data || {};
+  ensureDeliverableSchema_();
   if (!data.projectId) throw new Error('Project is required.');
   if (!asText_(data.type)) throw new Error('Deliverable type is required.');
   if (!getProjectService_(data.projectId)) throw new Error('Project not found.');
@@ -9,10 +22,13 @@ function createDeliverableService_(data) {
     'Deliverable ID': generateId_(CONFIG.ID_PREFIX.DELIVERABLE),
     'Project ID': data.projectId,
     'Type': asText_(data.type),
-    'Quantity': Number(data.quantity) || 1,
+    'Quantity': Math.max(1, Number(data.quantity) || 1),
     'Status': asText_(data.status) || CONFIG.DEFAULTS.DELIVERABLE_STATUS,
     'Priority': asText_(data.priority) || 'Medium',
-    'Due Date': data.dueDate ? new Date(data.dueDate) : ''
+    'Assigned To': asText_(data.assignedTo),
+    'Start Date': data.startDate ? new Date(data.startDate) : '',
+    'Due Date': data.dueDate ? new Date(data.dueDate) : '',
+    'Notes': asText_(data.notes)
   };
   appendRow_(APP.SHEETS.DELIVERABLES, DELIVERABLE_HEADERS, item);
   recordActivity_('Deliverable', item['Deliverable ID'], 'Created deliverable');
@@ -20,6 +36,7 @@ function createDeliverableService_(data) {
 }
 
 function getDeliverablesService_(projectId) {
+  ensureDeliverableSchema_();
   var sheet = getCRMSpreadsheet_().getSheetByName(APP.SHEETS.DELIVERABLES);
   if (!sheet || sheet.getLastRow() < 2) return [];
   var values = sheet.getDataRange().getValues(), headers = values.shift();
@@ -60,26 +77,20 @@ function addDeliverableTaskSummary_(item) {
   if (sheet && sheet.getLastRow() >= 2) {
     var rows = sheet.getDataRange().getValues(), headers = rows.shift();
     var didx = headers.indexOf('Deliverable ID'), sidx = headers.indexOf('Status'), dueidx = headers.indexOf('Due Date');
-    if (didx >= 0) {
-      rows.forEach(function(row) {
-        if (String(row[didx] == null ? '' : row[didx]).trim() !== String(result['Deliverable ID'] == null ? '' : result['Deliverable ID']).trim()) return;
-        summary.total++;
-        var status = String(sidx >= 0 ? row[sidx] : '');
-        if (status === 'Completed') summary.completed++;
-        else if (status === 'In Progress') summary.inProgress++;
-        else if (status === 'Pending Review') summary.pendingReview++;
-        else if (status === 'On Hold') summary.onHold++;
-        else if (status === 'To Do') summary.toDo++;
-        if (dueidx >= 0 && status !== 'Completed' && row[dueidx]) {
-          var due = row[dueidx] instanceof Date ? new Date(row[dueidx]) : new Date(row[dueidx]);
-          if (!isNaN(due.getTime())) {
-            due.setHours(0,0,0,0);
-            var today = new Date(); today.setHours(0,0,0,0);
-            if (due < today) summary.overdue++;
-          }
-        }
-      });
-    }
+    if (didx >= 0) rows.forEach(function(row) {
+      if (String(row[didx] == null ? '' : row[didx]).trim() !== String(result['Deliverable ID'] == null ? '' : result['Deliverable ID']).trim()) return;
+      summary.total++;
+      var status = String(sidx >= 0 ? row[sidx] : '');
+      if (status === 'Completed') summary.completed++;
+      else if (status === 'In Progress') summary.inProgress++;
+      else if (status === 'Pending Review') summary.pendingReview++;
+      else if (status === 'On Hold') summary.onHold++;
+      else if (status === 'To Do') summary.toDo++;
+      if (dueidx >= 0 && status !== 'Completed' && row[dueidx]) {
+        var due = row[dueidx] instanceof Date ? new Date(row[dueidx]) : new Date(row[dueidx]);
+        if (!isNaN(due.getTime())) { due.setHours(0,0,0,0); var today = new Date(); today.setHours(0,0,0,0); if (due < today) summary.overdue++; }
+      }
+    });
   }
   result['Task Count'] = summary.total;
   result['Completed Tasks'] = summary.completed;
@@ -105,12 +116,10 @@ function updateDeliverableStatusService_(id, status) {
   var s = getCRMSpreadsheet_().getSheetByName(APP.SHEETS.DELIVERABLES);
   if (!s) throw new Error('Deliverable not found.');
   var v = s.getDataRange().getValues(), h = v[0], ii = h.indexOf('Deliverable ID'), si = h.indexOf('Status');
-  for (var i = 1; i < v.length; i++) {
-    if (String(v[i][ii]) === String(id)) {
-      s.getRange(i + 1, si + 1).setValue(asText_(status));
-      recordActivity_('Deliverable', id, 'Updated deliverable status');
-      return true;
-    }
+  for (var i = 1; i < v.length; i++) if (String(v[i][ii]) === String(id)) {
+    s.getRange(i + 1, si + 1).setValue(asText_(status));
+    recordActivity_('Deliverable', id, 'Updated deliverable status');
+    return true;
   }
   throw new Error('Deliverable not found.');
 }
