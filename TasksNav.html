@@ -1,12 +1,19 @@
 <script>
 (function(){
-  var pagePermission={dashboard:'dashboard',clients:'clients',projects:'projects',tasks:'tasks',deliverables:'deliverables',content:'content',payments:'finance_own',reports:'profitability',activities:'activities_own',settings:'users'};
+  var pagePermission={dashboard:'dashboard',clients:'clients',projects:'projects',tasks:'tasks',deliverables:'deliverables',content:'content',payments:'finance_all',reports:'reports',activities:'activities_all',settings:'settings'};
+  var adminPages={dashboard:1,clients:1,projects:1,tasks:1,deliverables:1,content:1,payments:1,reports:1,activities:1,settings:1};
+  var partnerPages={dashboard:1,clients:1,projects:1,tasks:1,deliverables:1,content:1,payments:1,reports:1};
+  function isAllowed(ctx,page){
+    if(ctx.role==='Admin')return !!adminPages[page];
+    if(ctx.role==='Partner')return !!partnerPages[page];
+    if(page==='dashboard')return true;
+    return (ctx.permissions||[]).indexOf(pagePermission[page])>=0;
+  }
   function applyPermissions(ctx){
     if(!ctx||!ctx.authenticated)return;
-    var allowed=ctx.permissions||[];
     document.querySelectorAll('.nav button[data-page]').forEach(function(btn){
-      var p=pagePermission[btn.getAttribute('data-page')];
-      if(p)btn.style.display=allowed.indexOf(p)>=0?'block':'none';
+      var page=btn.getAttribute('data-page');
+      btn.style.display=isAllowed(ctx,page)?'block':'none';
     });
     document.querySelectorAll('.nav .section').forEach(function(section){
       var has=false,el=section.nextElementSibling;
@@ -17,7 +24,7 @@
       section.style.display=has?'block':'none';
     });
     var user=document.querySelector('.user');
-    if(user)user.textContent=(ctx.name||'User')+' · '+(ctx.role||'');
+    if(user)user.textContent=(ctx.name||'User')+' · '+(ctx.role||'')+(ctx.jobFunction?' · '+ctx.jobFunction:'');
   }
   function addTasksNav(){
     var nav=document.querySelector('.nav');
@@ -34,7 +41,7 @@
     installTaskCreationFallback();
   }
   function call(name,args,ok,fail){var r=google.script.run.withSuccessHandler(ok||function(){}).withFailureHandler(fail||function(e){console.log(e);});return args===undefined?r[name]():r[name].apply(r,args);}
-  function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];});}
+  function esc(v){return String(v==null?'':v).replace(/[&<>\\"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','\\"':'&quot;',"'":'&#39;'}[c];});}
   function installTaskCreationFallback(){
     if(window.__hmTaskCreationFallbackInstalled)return;
     window.__hmTaskCreationFallbackInstalled=true;
