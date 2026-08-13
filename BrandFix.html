@@ -57,3 +57,60 @@
   window.addEventListener('load',renderExactHypeMark);
 })();
 </script>
+<script id="hm-client-modal-fix">
+(function(){
+  function escClient(v){return String(v==null?'':v).replace(/[&<>\'\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]})}
+  window.openClient=function(id){
+    var bg=document.getElementById('modalBg'),body=document.getElementById('modalBody'),title=document.getElementById('modalTitle');
+    if(!bg||!body||!title){console.error('HYPEMARK CRM: Add Client modal container is missing.');return;}
+    var existing=null;
+    if(id&&window.state&&Array.isArray(state.clients)) existing=state.clients.find(function(c){return String(c['Client ID'])===String(id)})||null;
+    title.textContent=existing?'Edit Client':'Add Client';
+    body.innerHTML='<form id="hmClientForm" onsubmit="return hmSaveClient(event)"><div class="form-grid">'+
+      '<div class="field"><label>Client Name *</label><input id="hmClientName" required></div>'+ 
+      '<div class="field"><label>Business Name *</label><input id="hmBusinessName" required></div>'+ 
+      '<div class="field"><label>Contact Person</label><input id="hmContactPerson"></div>'+ 
+      '<div class="field"><label>Mobile</label><input id="hmMobile" inputmode="tel"></div>'+ 
+      '<div class="field"><label>Email</label><input id="hmEmail" type="email"></div>'+ 
+      '<div class="field"><label>GST</label><input id="hmGST"></div>'+ 
+      '<div class="field full"><label>Address</label><textarea id="hmAddress"></textarea></div>'+ 
+      '</div><div id="hmClientMsg" class="notice" style="display:none"></div><div class="form-actions"><button type="button" class="secondary" onclick="closeModal()">Cancel</button><button id="hmClientSave" type="submit" class="save">'+(existing?'Save Changes':'Save Client')+'</button></div></form>';
+    if(existing){
+      document.getElementById('hmClientName').value=existing['Client Name']||'';
+      document.getElementById('hmBusinessName').value=existing['Business Name']||'';
+      document.getElementById('hmContactPerson').value=existing['Contact Person']||'';
+      document.getElementById('hmMobile').value=existing.Mobile||'';
+      document.getElementById('hmEmail').value=existing.Email||'';
+      document.getElementById('hmGST').value=existing.GST||'';
+      document.getElementById('hmAddress').value=existing.Address||'';
+    }
+    bg.classList.add('show');
+  };
+  window.hmSaveClient=function(e){
+    e.preventDefault();
+    var btn=document.getElementById('hmClientSave'),msg=document.getElementById('hmClientMsg');
+    var id=(window.state&&state.editingClientId)||'';
+    var data={clientName:document.getElementById('hmClientName').value.trim(),businessName:document.getElementById('hmBusinessName').value.trim(),contactPerson:document.getElementById('hmContactPerson').value.trim(),mobile:document.getElementById('hmMobile').value.trim(),email:document.getElementById('hmEmail').value.trim(),gst:document.getElementById('hmGST').value.trim(),address:document.getElementById('hmAddress').value.trim()};
+    var existingId='';
+    if(window.state&&Array.isArray(state.clients)&&state.clients.length){
+      var match=state.clients.find(function(c){return String(c['Client Name']||'')===data.clientName&&String(c['Business Name']||'')===data.businessName});
+      if(match&&document.getElementById('modalTitle').textContent==='Edit Client')existingId=String(match['Client ID']||'');
+    }
+    btn.disabled=true;btn.textContent='Saving...';msg.style.display='none';
+    var runner=google.script.run.withSuccessHandler(function(saved){
+      if(window.state&&Array.isArray(state.clients)){
+        var i=state.clients.findIndex(function(c){return String(c['Client ID'])===String(saved['Client ID'])});
+        if(i>=0)state.clients[i]=saved;else state.clients.push(saved);
+        state.editingClientId='';
+      }
+      closeModal();
+      if(typeof renderClientsPro==='function')renderClientsPro();
+      toast('Client '+(existingId?'updated':'created')+' successfully.','ok');
+    }).withFailureHandler(function(err){
+      btn.disabled=false;btn.textContent=document.getElementById('modalTitle').textContent==='Edit Client'?'Save Changes':'Save Client';msg.style.display='block';msg.className='notice err';msg.textContent=err&&err.message?err.message:String(err);
+    });
+    if(existingId)runner.updateClient(existingId,data);else runner.createClient(data);
+    return false;
+  };
+})();
+</script>
