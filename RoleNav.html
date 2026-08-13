@@ -1,34 +1,10 @@
 <script>
 (function(){
-  var pagePermission={dashboard:'dashboard',clients:'clients',projects:'projects',tasks:'tasks',deliverables:'deliverables',content:'content',payments:'finance_all',reports:'profitability',activities:'activities_own',settings:'settings'};
-  function hideDashboardFinance(){
-    var content=document.getElementById('content');if(!content)return;
-    content.querySelectorAll('.card').forEach(function(card){
-      var text=String(card.textContent||'').toLowerCase();
-      if(text.indexOf('money received')>=0||text.indexOf('total costs')>=0||text.indexOf('client profitability')>=0||text.indexOf('finance')>=0&&text.indexOf('attention required')>=0)card.style.display='none';
-    });
-    var quick=content.querySelectorAll('.quick button');quick.forEach(function(btn){if(String(btn.textContent||'').toLowerCase().indexOf('payment')>=0)btn.style.display='none';});
-    var visibleStats=content.querySelectorAll('#stats > .card');if(visibleStats.length===4){visibleStats[2].style.display='none';visibleStats[3].style.display='none';}
-  }
-  function restrictEmployeeActions(ctx){
-    if(!ctx||ctx.role!=='Employee')return;
-    var taskAdd=document.getElementById('taskAdd');if(taskAdd)taskAdd.remove();
-  }
-  function observeDashboardFinance(ctx){
-    if(ctx.permissions.indexOf('finance_all')>=0)return;
-    var content=document.getElementById('content');if(!content)return;
-    hideDashboardFinance();
-    restrictEmployeeActions(ctx);
-    if(window.MutationObserver){new MutationObserver(function(){hideDashboardFinance();restrictEmployeeActions(ctx);}).observe(content,{childList:true,subtree:true});}
-  }
-  function applyRoleNav(ctx){
-    if(!ctx||!ctx.authenticated)return;
-    var allowed={};(ctx.permissions||[]).forEach(function(p){allowed[p]=true;});
-    document.querySelectorAll('.nav button[data-page]').forEach(function(btn){var page=btn.getAttribute('data-page'),perm=pagePermission[page];if(perm&&!allowed[perm])btn.remove();});
-    document.querySelectorAll('.nav .section').forEach(function(section){var next=section.nextElementSibling,has=false;while(next&&!next.classList.contains('section')){if(next.matches&&next.matches('button[data-page]')){has=true;break;}next=next.nextElementSibling;}if(!has)section.remove();});
-    var user=document.querySelector('.user');if(user)user.textContent=(ctx.name||'User')+' · '+(ctx.role||'');
-    observeDashboardFinance(ctx);
-  }
+  var pagePermission={dashboard:'dashboard',clients:'clients',projects:'projects',tasks:'tasks',deliverables:'deliverables',content:'content',payments:'finance_all',reports:'profitability',activities:'activities_all',settings:'settings'};
+  function esc(v){return String(v==null?'':v).replace(/[&<>\'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]});}
+  function hideDashboardFinance(){var content=document.getElementById('content');if(!content)return;content.querySelectorAll('.card').forEach(function(card){var text=String(card.textContent||'').toLowerCase();if(text.indexOf('money received')>=0||text.indexOf('total costs')>=0||text.indexOf('client profitability')>=0||text.indexOf('finance')>=0&&text.indexOf('attention required')>=0)card.style.display='none';});content.querySelectorAll('.quick button').forEach(function(btn){if(String(btn.textContent||'').toLowerCase().indexOf('payment')>=0)btn.style.display='none';});}
+  function employeeDashboard(ctx){google.script.run.withSuccessHandler(function(d){var c=document.getElementById('content');if(!c)return;var list=function(a,key){return a&&a.length?a.map(function(x){return '<div class="act"><strong>'+esc(x[key]||x['Task Name']||x.Title||x.Type||'-')+'</strong><small>'+esc(x.Status||'')+' · '+esc(x['Due Date']||x['Publish Date']||'')+'</small></div>';}).join(''):'<div class="empty">Nothing here yet.</div>';c.innerHTML='<div class="hero"><div><h1>My Dashboard</h1><p>'+esc(ctx.name)+' · '+esc(ctx.jobFunction||'Employee')+'</p></div></div><div class="grid"><div class="card stat"><div class="label">My Tasks</div><div class="value">'+(d.tasks||[]).length+'</div></div><div class="card stat"><div class="label">My Deliverables</div><div class="value">'+(d.deliverables||[]).length+'</div></div><div class="card stat"><div class="label">Pending Reviews</div><div class="value orange">'+(d.pendingReviews||[]).length+'</div></div><div class="card stat"><div class="label">Completed Work</div><div class="value green">'+(d.completedWork||[]).length+'</div></div></div><div class="panels"><div class="card panel"><h2>My Tasks</h2><p>Only work assigned to you.</p><div class="activity">'+list(d.tasks,'Task Name')+'</div></div><div class="card panel"><h2>Upcoming Deadlines</h2><p>Your next assigned deadlines.</p><div class="activity">'+list(d.upcomingDeadlines,'title')+'</div></div></div><div class="panels" style="margin-top:17px"><div class="card panel"><h2>My Deliverables</h2><p>Deliverables assigned to you.</p><div class="activity">'+list(d.deliverables,'Type')+'</div></div><div class="card panel"><h2>My Content</h2><p>Content assigned to you.</p><div class="activity">'+list(d.content,'Title')+'</div></div></div>';}).withFailureHandler(function(e){var c=document.getElementById('content');if(c)c.innerHTML='<div class="card panel"><h2>Dashboard could not load</h2><p>'+esc(e.message||e)+'</p></div>';}).getEmployeeDashboardService_(ctx);}
+  function applyRoleNav(ctx){if(!ctx||!ctx.authenticated)return;var allowed={};(ctx.permissions||[]).forEach(function(p){allowed[p]=true;});document.querySelectorAll('.nav button[data-page]').forEach(function(btn){var page=btn.getAttribute('data-page'),perm=pagePermission[page];if(perm&&!allowed[perm])btn.remove();});document.querySelectorAll('.nav .section').forEach(function(section){var next=section.nextElementSibling,has=false;while(next&&!next.classList.contains('section')){if(next.matches&&next.matches('button[data-page]')){has=true;break;}next=next.nextElementSibling;}if(!has)section.remove();});var user=document.querySelector('.user');if(user)user.textContent=(ctx.name||'User')+' · '+(ctx.role||'')+(ctx.jobFunction?' · '+ctx.jobFunction:'');if(ctx.role==='Employee')employeeDashboard(ctx);else if(ctx.permissions.indexOf('finance_all')<0)hideDashboardFinance();}
   function init(){if(typeof google==='undefined'||!google.script||!google.script.run)return;google.script.run.withSuccessHandler(applyRoleNav).withFailureHandler(function(){}).getAuthContext();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
