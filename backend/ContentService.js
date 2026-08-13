@@ -1,103 +1,19 @@
-var CONTENT_HEADERS = ['Content ID','Deliverable ID','Title','Status','Priority','Assigned To','Publish Date'];
+var CONTENT_HEADERS = ['Content ID','Deliverable ID','Title','Platform','Content Type','Creative Brief','Assets / Instructions','Status','Priority','Assigned To','Publish Date'];
+var CONTENT_STATUSES = ['Planned','In Progress','Pending Review','Approved','Published','On Hold','Cancelled'];
+var CONTENT_PLATFORMS = ['Instagram','Facebook','YouTube','LinkedIn','WhatsApp','Website','Other'];
 
-function contentNormalizeHeader_(value) {
-  return String(value == null ? '' : value).trim().toLowerCase().replace(/\s+/g, ' ');
-}
-
-function contentFindColumn_(headers, name) {
-  var wanted = contentNormalizeHeader_(name);
-  for (var i = 0; i < headers.length; i++) {
-    if (contentNormalizeHeader_(headers[i]) === wanted) return i;
-  }
-  return -1;
-}
-
-function contentSerializeValue_(value) {
-  if (value instanceof Date) return Utilities.formatDate(value, CONFIG.TIMEZONE, 'yyyy-MM-dd');
-  if (value == null) return '';
-  return value;
-}
-
-function getContentAssigneesService_() {
-  var sheet = getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);
-  if (!sheet || sheet.getLastRow() < 2) return [];
-  var values = sheet.getDataRange().getValues();
-  var headers = values.shift().map(function(h){ return String(h == null ? '' : h).trim(); });
-  var nameCol = contentFindColumn_(headers, 'Name');
-  var roleCol = contentFindColumn_(headers, 'Role');
-  var statusCol = contentFindColumn_(headers, 'Status');
-  if (nameCol < 0) return [];
-  return values.filter(function(row){
-    return String(row[statusCol] == null ? '' : row[statusCol]).trim() === 'Active' && String(row[nameCol] == null ? '' : row[nameCol]).trim();
-  }).map(function(row){
-    return {name:String(row[nameCol] || '').trim(), role:roleCol >= 0 ? String(row[roleCol] || '').trim() : ''};
-  });
-}
-
+function contentNormalizeHeader_(value) { return String(value == null ? '' : value).trim().toLowerCase().replace(/\s+/g, ' '); }
+function contentFindColumn_(headers, name) { var wanted = contentNormalizeHeader_(name); for (var i = 0; i < headers.length; i++) if (contentNormalizeHeader_(headers[i]) === wanted) return i; return -1; }
+function contentSerializeValue_(value) { if (value instanceof Date) return Utilities.formatDate(value, CONFIG.TIMEZONE, 'yyyy-MM-dd'); if (value == null) return ''; return value; }
+function ensureContentSchema_() { var s=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.CONTENT_BANK); if(!s)return; var n=Math.max(s.getLastColumn(),1),h=s.getRange(1,1,1,n).getValues()[0],changed=false; CONTENT_HEADERS.forEach(function(x){if(h.indexOf(x)<0){h.push(x);changed=true;}}); if(changed)s.getRange(1,1,1,h.length).setValues([h]); }
+function getContentAssigneesService_() { var sheet=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS); if(!sheet||sheet.getLastRow()<2)return[]; var values=sheet.getDataRange().getValues(),headers=values.shift().map(function(h){return String(h==null?'':h).trim();}),nameCol=contentFindColumn_(headers,'Name'),roleCol=contentFindColumn_(headers,'Role'),jobCol=contentFindColumn_(headers,'Job Function'),statusCol=contentFindColumn_(headers,'Status'); if(nameCol<0)return[]; return values.filter(function(row){return String(row[statusCol]==null?'':row[statusCol]).trim()==='Active'&&String(row[nameCol]==null?'':row[nameCol]).trim();}).map(function(row){return{name:String(row[nameCol]||'').trim(),role:roleCol>=0?String(row[roleCol]||'').trim():'',jobFunction:jobCol>=0?String(row[jobCol]||'').trim():''};}); }
 function createContentService_(data) {
-  if (!data || !data.deliverableId) throw new Error('Deliverable is required.');
-  if (!asText_(data.title)) throw new Error('Content title is required.');
-  if (!getDeliverableService_(data.deliverableId)) throw new Error('Deliverable not found.');
-
-  var item = {
-    'Content ID': generateId_(CONFIG.ID_PREFIX.CONTENT),
-    'Deliverable ID': asText_(data.deliverableId),
-    'Title': asText_(data.title),
-    'Status': asText_(data.status) || CONFIG.DEFAULTS.DELIVERABLE_STATUS,
-    'Priority': asText_(data.priority) || CONFIG.DEFAULTS.PRIORITY,
-    'Assigned To': asText_(data.assignedTo),
-    'Publish Date': data.publishDate ? new Date(data.publishDate) : ''
-  };
-
-  if (item['Assigned To']) {
-    var assignees = getContentAssigneesService_().map(function(x){ return String(x.name).trim().toLowerCase(); });
-    if (assignees.indexOf(item['Assigned To'].trim().toLowerCase()) < 0) throw new Error('Assigned team member is not an active CRM user.');
-  }
-
-  appendRow_(APP.SHEETS.CONTENT_BANK, CONTENT_HEADERS, item);
-  recordActivity_('Content', item['Content ID'], 'Created content');
-
-  return {
-    'Content ID': item['Content ID'],
-    'Deliverable ID': item['Deliverable ID'],
-    'Title': item['Title'],
-    'Status': item['Status'],
-    'Priority': item['Priority'],
-    'Assigned To': item['Assigned To'],
-    'Publish Date': contentSerializeValue_(item['Publish Date'])
-  };
+  var c=requireAuth_(); if(!hasPermission_(c,'content'))throw new Error('You do not have permission to create content.'); data=data||{}; ensureContentSchema_();
+  if(!data.deliverableId)throw new Error('Deliverable is required.'); if(!asText_(data.title))throw new Error('Content title is required.'); if(!getDeliverableService_(data.deliverableId))throw new Error('Deliverable not found.');
+  var status=asText_(data.status)||'Planned'; if(CONTENT_STATUSES.indexOf(status)<0)throw new Error('Invalid content status.'); var platform=asText_(data.platform)||'Instagram'; if(CONTENT_PLATFORMS.indexOf(platform)<0)throw new Error('Invalid content platform.');
+  var item={'Content ID':generateId_(CONFIG.ID_PREFIX.CONTENT),'Deliverable ID':asText_(data.deliverableId),'Title':asText_(data.title),'Platform':platform,'Content Type':asText_(data.contentType),'Creative Brief':asText_(data.creativeBrief),'Assets / Instructions':asText_(data.assetsInstructions),'Status':status,'Priority':asText_(data.priority)||'Medium','Assigned To':asText_(data.assignedTo),'Publish Date':data.publishDate?new Date(data.publishDate):''};
+  if(item['Assigned To']){var assignees=getContentAssigneesService_().map(function(x){return String(x.name).trim().toLowerCase();});if(assignees.indexOf(item['Assigned To'].trim().toLowerCase())<0)throw new Error('Assigned team member is not an active CRM user.');}
+  appendRow_(APP.SHEETS.CONTENT_BANK,CONTENT_HEADERS,item); recordActivity_('Content',item['Content ID'],'Created content: '+item.Title); return serializeContentItem_(item);
 }
-
-function getContentService_(deliverableId) {
-  var sheet = getCRMSpreadsheet_().getSheetByName(APP.SHEETS.CONTENT_BANK);
-  if (!sheet || sheet.getLastRow() < 2) return [];
-
-  var values = sheet.getDataRange().getValues();
-  if (!values.length) return [];
-
-  var headers = values.shift().map(function (h) { return String(h == null ? '' : h).trim(); });
-  var idCol = contentFindColumn_(headers, 'Content ID');
-  var deliverableCol = contentFindColumn_(headers, 'Deliverable ID');
-  var titleCol = contentFindColumn_(headers, 'Title');
-  var statusCol = contentFindColumn_(headers, 'Status');
-  var priorityCol = contentFindColumn_(headers, 'Priority');
-  var assignedCol = contentFindColumn_(headers, 'Assigned To');
-  var publishCol = contentFindColumn_(headers, 'Publish Date');
-
-  return values.filter(function (row) {
-    var hasData = row.some(function (cell) { return cell !== '' && cell != null; });
-    if (!hasData) return false;
-    if (!deliverableId || deliverableCol < 0) return true;
-    return String(row[deliverableCol] == null ? '' : row[deliverableCol]).trim() === String(deliverableId).trim();
-  }).map(function (row) {
-    return {
-      'Content ID': idCol >= 0 ? contentSerializeValue_(row[idCol]) : '',
-      'Deliverable ID': deliverableCol >= 0 ? contentSerializeValue_(row[deliverableCol]) : '',
-      'Title': titleCol >= 0 ? contentSerializeValue_(row[titleCol]) : '',
-      'Status': statusCol >= 0 ? contentSerializeValue_(row[statusCol]) : '',
-      'Priority': priorityCol >= 0 ? contentSerializeValue_(row[priorityCol]) : '',
-      'Assigned To': assignedCol >= 0 ? contentSerializeValue_(row[assignedCol]) : '',
-      'Publish Date': publishCol >= 0 ? contentSerializeValue_(row[publishCol]) : ''
-    };
-  });
-}
+function getContentService_(deliverableId) { ensureContentSchema_(); var sheet=getCRMSpreadsheet_().getSheetByName(APP.SHEETS.CONTENT_BANK); if(!sheet||sheet.getLastRow()<2)return[]; var values=sheet.getDataRange().getValues(),headers=values.shift().map(function(h){return String(h==null?'':h).trim();}),idCol=contentFindColumn_(headers,'Content ID'),deliverableCol=contentFindColumn_(headers,'Deliverable ID'); return values.filter(function(row){var hasData=row.some(function(cell){return cell!==''&&cell!=null;});if(!hasData)return false;if(!deliverableId||deliverableCol<0)return true;return String(row[deliverableCol]==null?'':row[deliverableCol]).trim()===String(deliverableId).trim();}).map(function(row){var o={};CONTENT_HEADERS.forEach(function(k){var col=contentFindColumn_(headers,k);o[k]=col>=0?contentSerializeValue_(row[col]):'';});return o;}); }
+function serializeContentItem_(item){var o={};CONTENT_HEADERS.forEach(function(k){o[k]=contentSerializeValue_(item[k]);});return o;}
