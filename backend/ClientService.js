@@ -17,8 +17,18 @@ function createClientService_(data) {
     'Created On': now_()
   };
 
+  // The client record is the primary transaction. Save it first and only then
+  // perform non-critical audit logging. A failure in the activity log must not
+  // make the UI report a failed client creation after the client was saved.
   appendRow_(APP.SHEETS.CLIENTS, CLIENT_HEADERS, client);
-  recordActivity_('Client', client['Client ID'], 'Created client');
+  SpreadsheetApp.flush();
+
+  try {
+    recordActivity_('Client', client['Client ID'], 'Created client');
+  } catch (auditError) {
+    logError_('Client created but activity logging failed', auditError);
+  }
+
   logInfo_('Client created', { id: client['Client ID'] });
   return serializeClient_(client);
 }
@@ -79,8 +89,14 @@ function updateClientService_(clientId, data) {
 
   sheet.getRange(rowIndex, 1, 1, CLIENT_HEADERS.length)
     .setValues([CLIENT_HEADERS.map(function(header) { return updated[header]; })]);
+  SpreadsheetApp.flush();
 
-  recordActivity_('Client', clientId, 'Updated client');
+  try {
+    recordActivity_('Client', clientId, 'Updated client');
+  } catch (auditError) {
+    logError_('Client updated but activity logging failed', auditError);
+  }
+
   return serializeClient_(updated);
 }
 
