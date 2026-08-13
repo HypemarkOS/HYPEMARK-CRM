@@ -41,7 +41,7 @@ function getActivities(){var ctx=requireAuth_();if(ctx.permissions.indexOf(AUTH_
 function getDashboard(){var ctx=requirePermission_(AUTH_PERMISSIONS.DASHBOARD);var d=getDashboardService_();if(ctx.permissions.indexOf(AUTH_PERMISSIONS.FINANCE_ALL)<0){d.clientReceipts=0;d.employeePayments=0;d.miscExpenses=0;d.totalExpenses=0;d.netContribution=0;d.allocatedAmount=0;d.unallocatedAmount=0;d.pendingReceipts=0;d.clientProfitability=[];}if(ctx.permissions.indexOf(AUTH_PERMISSIONS.ACTIVITIES_ALL)<0)d.recentActivities=getActivitiesForUser_(ctx);return d;}
 function getPaymentsForUser_(ctx,clientId,type){return getPaymentsService_(clientId,type).filter(function(p){return p.Type!=='Employee Payment'||String(p.Employee||'').trim().toLowerCase()===String(ctx.name||'').trim().toLowerCase();});}
 function getActivitiesForUser_(ctx){return getActivitiesService_().filter(function(a){return String(a.User||'').trim().toLowerCase()===String(ctx.name||'').trim().toLowerCase();});}
-function getTaskOptions(){requirePermission_(AUTH_PERMISSIONS.TASKS);return getTaskOptionsService_();}
+function getTaskOptions(){return getTaskOptionsFast();}
 function getTasks(){requirePermission_(AUTH_PERMISSIONS.TASKS);return getTasksService_();}
 function createTask(data){var c=requirePermission_(AUTH_PERMISSIONS.TASKS);if(['Admin','Manager'].indexOf(c.role)<0)throw new Error('Only Admin or Manager can create tasks.');return createTaskService_(data);}
 function updateTask(id,data){requirePermission_(AUTH_PERMISSIONS.TASKS);return updateTaskService_(id,data);}
