@@ -1,1 +1,57 @@
-<!-- Projects routing has been centralized into PremiumShell during the CRM shell cleanup. Kept as a compatibility file because Code.js still references this legacy filename in older deployments. -->
+<!-- Projects compatibility layer. PremiumShell renders the Projects UI; this file hardens project creation because Code.js already injects it into the authenticated shell. -->
+<script>
+(function(){
+  function showError(text){
+    var form=document.getElementById('hmProjectForm');
+    if(!form)return;
+    var box=document.getElementById('hmProjectCreateError');
+    if(!box){box=document.createElement('div');box.id='hmProjectCreateError';box.style.cssText='margin-top:14px;padding:12px 14px;border-radius:10px;background:#fff0f1;color:#c91018;font-size:13px;border:1px solid #ffd0d3';form.appendChild(box)}
+    box.textContent=text||'';box.style.display=text?'block':'none';
+  }
+  function saveProjectDirect(ev){
+    if(ev)ev.preventDefault();
+    var button=document.querySelector('#hmProjectForm .save');
+    var valueText=((document.getElementById('hmPV')||{}).value||'').replace(/,/g,'').trim();
+    var value=valueText===''?0:Number(valueText);
+    var data={
+      projectName:((document.getElementById('hmPN')||{}).value||'').trim(),
+      clientId:((document.getElementById('hmPC')||{}).value||''),
+      status:((document.getElementById('hmPS')||{}).value||'Planned'),
+      projectValue:value,
+      startDate:((document.getElementById('hmPStart')||{}).value||''),
+      dueDate:((document.getElementById('hmPEnd')||{}).value||''),
+      owner:((document.getElementById('hmPOwner')||{}).value||''),
+      notes:((document.getElementById('hmPNotes')||{}).value||'')
+    };
+    if(!data.projectName){showError('Project Name is required.');return false;}
+    if(!data.clientId){showError('Client is required.');return false;}
+    if(!isFinite(value)||value<0){showError('Enter a valid project value.');return false;}
+    if(button){button.disabled=true;button.textContent='Creating...';}
+    showError('');
+    google.script.run.withSuccessHandler(function(){
+      if(typeof closeModal==='function')closeModal();
+      if(window.toast)toast('Project created successfully.','ok');
+      if(typeof loadProjects==='function')loadProjects();
+    }).withFailureHandler(function(err){
+      if(button){button.disabled=false;button.textContent='Create Project';}
+      showError('Unable to create project: '+(err&&err.message?err.message:String(err)));
+    }).createProject(data);
+    return false;
+  }
+  function patch(){
+    var form=document.getElementById('hmProjectForm');
+    if(!form||form.__hmProjectDirectFix)return;
+    form.__hmProjectDirectFix=true;
+    form.onsubmit=saveProjectDirect;
+  }
+  function watch(){
+    patch();
+    if(document.body&&!window.__hmProjectDirectFixObserver){
+      window.__hmProjectDirectFixObserver=new MutationObserver(function(){patch()});
+      window.__hmProjectDirectFixObserver.observe(document.body,{childList:true,subtree:true});
+    }
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',watch);else watch();
+  window.addEventListener('load',watch);
+})();
+</script>
