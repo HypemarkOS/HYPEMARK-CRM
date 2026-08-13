@@ -10,7 +10,7 @@ function initializeCRMService_() {
   var definitions = [
     [APP.SHEETS.CLIENTS, ['Client ID','Client Name','Business Name','Contact Person','Mobile','Email','Address','GST','Status','Created On']],
     [APP.SHEETS.ENGAGEMENTS, ['Engagement ID','Client ID','Service','Start Date','End Date','Status','Priority']],
-    [APP.SHEETS.PROJECTS, ['Project ID','Client ID','Engagement ID','Project Name','Status','Priority','Due Date','Created On']],
+    [APP.SHEETS.PROJECTS, ['Project ID','Client ID','Engagement ID','Project Name','Status','Priority','Project Value','Start Date','Due Date','Owner / Assignee','Notes','Created On']],
     [APP.SHEETS.DELIVERABLES, ['Deliverable ID','Project ID','Type','Quantity','Status','Priority','Due Date']],
     [APP.SHEETS.CONTENT_BANK, ['Content ID','Deliverable ID','Title','Status','Priority','Assigned To','Publish Date']],
     [APP.SHEETS.ACTIVITIES, ['Activity ID','Entity','Entity ID','Action','User','Date Time']],
