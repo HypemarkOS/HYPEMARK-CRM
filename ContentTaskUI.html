@@ -1,0 +1,28 @@
+<script>
+(function(){
+  function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];});}
+  var selectedContentId='';
+  function call(name,args,ok,fail){var r=google.script.run.withSuccessHandler(ok||function(){}).withFailureHandler(fail||function(e){if(window.toast)toast(e.message||String(e),'err');});return args===undefined?r[name]():r[name].apply(r,args);}
+  function addContentField(){
+    var dl=document.getElementById('fDeliverable');if(!dl||document.getElementById('fContent'))return;
+    var wrap=document.createElement('div');wrap.className='field full';wrap.innerHTML='<label>Content</label><select id="fContent"><option value="">No content link</option></select><small style="display:block;margin-top:5px;color:#7b8491">Link this task to the exact content item it executes.</small>';
+    dl.closest('.field').parentNode.insertBefore(wrap,dl.closest('.field').nextSibling);
+    function load(){var did=dl.value;var sel=document.getElementById('fContent');if(!sel)return;if(!did){sel.innerHTML='<option value="">No content link</option>';return;}call('getContentForDeliverable',[did],function(items){items=Array.isArray(items)?items:[];sel.innerHTML='<option value="">No content link</option>'+items.map(function(x){return'<option value="'+esc(x['Content ID'])+'">'+esc(x.Title||x['Content ID'])+' · '+esc(x.Status||'')+'</option>';}).join('');if(selectedContentId)sel.value=selectedContentId;});}
+    dl.addEventListener('change',load);load();
+  }
+  function loadLinked(taskId){if(!taskId)return;call('getContentTaskBundle',[getContentIdForTask(taskId)],function(){},function(){});}
+  function getContentIdForTask(taskId){return '';}
+  function watch(){
+    var m=document.getElementById('modalBg');if(!m)return;
+    var obs=new MutationObserver(function(){if(m.classList.contains('show')){setTimeout(function(){addContentField();var id=document.getElementById('fContent');if(id)id.addEventListener('change',function(){selectedContentId=id.value;});},50);}});obs.observe(m,{attributes:true,attributeFilter:['class']});
+    document.addEventListener('click',function(ev){
+      var b=ev.target.closest&&ev.target.closest('#fSave');if(!b)return;
+      var content=document.getElementById('fContent');selectedContentId=content?content.value:'';
+      var taskName=document.getElementById('fName');var name=taskName?taskName.value.trim():'';
+      if(!selectedContentId||!name)return;
+      setTimeout(function(){call('getTasks',undefined,function(tasks){tasks=(tasks||[]).filter(function(t){return String(t['Task Name']||'').trim()===name;});if(!tasks.length)return;tasks.sort(function(a,b){return String(b['Updated On']||'').localeCompare(String(a['Updated On']||''));});call('linkContentTask',[selectedContentId,tasks[0]['Task ID']],function(){},function(e){if(window.toast)toast('Task saved, but content link failed: '+(e.message||e),'err');});});},700);
+    },true);
+  }
+  window.addEventListener('load',function(){watch();});
+})();
+</script>
