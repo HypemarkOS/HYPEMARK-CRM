@@ -15,15 +15,14 @@
   }
   function captureSave(ev){
     var b=ev.target.closest&&ev.target.closest('#fSave');if(!b)return;
+    var title=document.getElementById('modalTitle');
+    if(!title||title.textContent!=='Create Task')return;
     var content=document.getElementById('fContent');if(!content||!content.value)return;
     ev.preventDefault();ev.stopImmediatePropagation();selectedContentId=content.value;
-    var taskId=b.getAttribute('data-task-id')||'';
     var name=document.getElementById('fName'),client=document.getElementById('fClient'),project=document.getElementById('fProject'),deliverable=document.getElementById('fDeliverable'),assign=document.getElementById('fAssign'),priority=document.getElementById('fPriority'),status=document.getElementById('fStatus'),start=document.getElementById('fStart'),due=document.getElementById('fDue'),notes=document.getElementById('fNotes');
     var d={taskName:name?name.value.trim():'',clientId:client?client.value:'',projectId:project?project.value:'',deliverableId:deliverable?deliverable.value:'',assignedTo:assign?assign.value:'',priority:priority?priority.value:'Medium',status:status?status.value:'To Do',startDate:start?start.value:'',dueDate:due?due.value:'',notes:notes?notes.value:'',UpdateNotes:notes?notes.value:''};
-    b.disabled=true;b.textContent=taskId?'Saving...':'Creating...';
-    var ok=function(saved){var id=saved&&saved['Task ID'];if(!id){if(window.toast)toast('Task saved, but no Task ID was returned.','err');b.disabled=false;return;}call('linkContentTask',[selectedContentId,id],function(){if(typeof closeModal==='function')closeModal();if(window.showTasksPage)window.showTasksPage();if(window.toast)toast('Task saved and linked to content.','ok');},function(e){if(typeof closeModal==='function')closeModal();if(window.showTasksPage)window.showTasksPage();if(window.toast)toast('Task saved, but content link failed: '+(e.message||e),'err');});};
-    var fail=function(e){b.disabled=false;b.textContent=taskId?'Save Update':'Create Task';if(window.toast)toast(e.message||String(e),'err');};
-    if(taskId)call('updateTask',[taskId,d],ok,fail);else call('createTask',[d],ok,fail);
+    b.disabled=true;b.textContent='Creating...';
+    call('createTask',[d],function(saved){var id=saved&&saved['Task ID'];if(!id){b.disabled=false;if(window.toast)toast('Task was created but no Task ID was returned.','err');return;}call('linkContentTask',[selectedContentId,id],function(){if(typeof closeModal==='function')closeModal();if(window.showTasksPage)window.showTasksPage();if(window.toast)toast('Task created and linked to content.','ok');},function(e){if(typeof closeModal==='function')closeModal();if(window.showTasksPage)window.showTasksPage();if(window.toast)toast('Task created, but content link failed: '+(e.message||e),'err');});},function(e){b.disabled=false;b.textContent='Create Task';if(window.toast)toast(e.message||String(e),'err');});
   }
   function watch(){var m=document.getElementById('modalBg');if(!m)return;var obs=new MutationObserver(function(){if(m.classList.contains('show'))setTimeout(inject,50);});obs.observe(m,{attributes:true,attributeFilter:['class']});document.addEventListener('click',captureSave,true);}
   window.addEventListener('load',watch);
