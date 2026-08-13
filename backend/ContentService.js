@@ -18,6 +18,22 @@ function contentSerializeValue_(value) {
   return value;
 }
 
+function getContentAssigneesService_() {
+  var sheet = getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  var values = sheet.getDataRange().getValues();
+  var headers = values.shift().map(function(h){ return String(h == null ? '' : h).trim(); });
+  var nameCol = contentFindColumn_(headers, 'Name');
+  var roleCol = contentFindColumn_(headers, 'Role');
+  var statusCol = contentFindColumn_(headers, 'Status');
+  if (nameCol < 0) return [];
+  return values.filter(function(row){
+    return String(row[statusCol] == null ? '' : row[statusCol]).trim() === 'Active' && String(row[nameCol] == null ? '' : row[nameCol]).trim();
+  }).map(function(row){
+    return {name:String(row[nameCol] || '').trim(), role:roleCol >= 0 ? String(row[roleCol] || '').trim() : ''};
+  });
+}
+
 function createContentService_(data) {
   if (!data || !data.deliverableId) throw new Error('Deliverable is required.');
   if (!asText_(data.title)) throw new Error('Content title is required.');
@@ -32,6 +48,11 @@ function createContentService_(data) {
     'Assigned To': asText_(data.assignedTo),
     'Publish Date': data.publishDate ? new Date(data.publishDate) : ''
   };
+
+  if (item['Assigned To']) {
+    var assignees = getContentAssigneesService_().map(function(x){ return String(x.name).trim().toLowerCase(); });
+    if (assignees.indexOf(item['Assigned To'].trim().toLowerCase()) < 0) throw new Error('Assigned team member is not an active CRM user.');
+  }
 
   appendRow_(APP.SHEETS.CONTENT_BANK, CONTENT_HEADERS, item);
   recordActivity_('Content', item['Content ID'], 'Created content');
