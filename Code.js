@@ -30,7 +30,18 @@ function onOpen(){SpreadsheetApp.getUi().createMenu('🚀 HYPEMARK CRM').addItem
 function showAddClient(){requirePermission_(AUTH_PERMISSIONS.CLIENTS);var html=HtmlService.createTemplateFromFile('AddClient').evaluate().setWidth(900).setHeight(700);SpreadsheetApp.getUi().showModalDialog(html,'Add New Client');}
 function initializeCRM(){var url=initializeCRMService_();cleanupDefaultSheet_();ensureAuthSetup_();return url;}
 function cleanupDefaultSheet_(){var ss=getCRMSpreadsheet_();var sheet=ss.getSheetByName('Sheet1');if(sheet&&ss.getSheets().length>1&&sheet.getLastRow()===0&&sheet.getLastColumn()===0)ss.deleteSheet(sheet);}
-function createClient(data){requirePermission_(AUTH_PERMISSIONS.CLIENTS);return createClientService_(data);} function getClients(){requirePermission_(AUTH_PERMISSIONS.CLIENTS);return getClientsService_();} function getClient(id){requirePermission_(AUTH_PERMISSIONS.CLIENTS);return getClientService_(id);} function updateClient(id,data){requirePermission_(AUTH_PERMISSIONS.CLIENTS);return updateClientService_(id,data);}
+function createClient(data){
+  var ctx;
+  try { ctx=requirePermission_(AUTH_PERMISSIONS.CLIENTS); }
+  catch(e){ throw new Error('Client creation failed at authorization: '+(e&&e.message?e.message:String(e))); }
+  try { return createClientService_(data); }
+  catch(e){
+    var message=e&&e.message?e.message:String(e);
+    logError_('createClient failed',e);
+    throw new Error('Client creation failed: '+message);
+  }
+}
+function getClients(){requirePermission_(AUTH_PERMISSIONS.CLIENTS);return getClientsService_();} function getClient(id){requirePermission_(AUTH_PERMISSIONS.CLIENTS);return getClientService_(id);} function updateClient(id,data){requirePermission_(AUTH_PERMISSIONS.CLIENTS);return updateClientService_(id,data);}
 function createEngagement(data){requirePermission_(AUTH_PERMISSIONS.CLIENTS);return createEngagementService_(data);} function getEngagements(clientId){requirePermission_(AUTH_PERMISSIONS.CLIENTS);return getEngagementsService_(clientId);}
 function createProject(data){requirePermission_(AUTH_PERMISSIONS.PROJECTS);return createProjectService_(data);} function getProjects(clientId){requirePermission_(AUTH_PERMISSIONS.PROJECTS);return getProjectsService_(clientId);} function getProject(id){requirePermission_(AUTH_PERMISSIONS.PROJECTS);return getProjectService_(id);}
 function createDeliverable(data){requirePermission_(AUTH_PERMISSIONS.DELIVERABLES);return createDeliverableService_(data);} function getDeliverables(projectId){requirePermission_(AUTH_PERMISSIONS.DELIVERABLES);return getDeliverablesService_(projectId);} function getDeliverableTaskSummary(id){requirePermission_(AUTH_PERMISSIONS.DELIVERABLES);return getDeliverableTaskSummaryService_(id);} function updateDeliverableStatus(id,status){requirePermission_(AUTH_PERMISSIONS.DELIVERABLES);return updateDeliverableStatusService_(id,status);}
