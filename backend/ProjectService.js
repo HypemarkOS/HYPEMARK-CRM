@@ -26,7 +26,6 @@ function ensureProjectSheetHeaders_() {
 function createProjectService_(data) {
   data = data || {};
 
-  // Accept the canonical API contract and the legacy UI aliases while we migrate.
   var clientId = asText_(data.clientId || data.ClientID || data['Client ID']);
   var projectName = asText_(data.projectName || data.Name || data['Project Name']);
   var engagementId = asText_(data.engagementId || data.EngagementID || data['Engagement ID']);
@@ -52,6 +51,15 @@ function createProjectService_(data) {
 
   var value = projectValue === '' || projectValue === null || projectValue === undefined ? 0 : Number(String(projectValue).replace(/,/g, ''));
   if (!isFinite(value) || value < 0) throw new Error('Project Value must be a valid non-negative number.');
+
+  if (owner) {
+    var ownerUser = getActiveProjectOwnerById_(owner);
+    if (!ownerUser) {
+      var legacyOwner = getActiveProjectOwnerByName_(owner);
+      if (legacyOwner) owner = legacyOwner.userId;
+      else throw new Error('Selected Project Owner is no longer an active CRM user. Please choose another person.');
+    }
+  }
 
   var project = {
     'Project ID': generateId_(CONFIG.ID_PREFIX.PROJECT),
@@ -97,11 +105,57 @@ function getProjectService_(projectId) {
   return projects.find(function(project) { return project['Project ID'] === projectId; }) || null;
 }
 
+function getActiveProjectOwnersService_() {
+  var sheet = getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  var values = sheet.getDataRange().getValues();
+  var headers = values.shift();
+  var idIdx = headers.indexOf('User ID');
+  var nameIdx = headers.indexOf('Name');
+  var roleIdx = headers.indexOf('Role');
+  var jobIdx = headers.indexOf('Job Function');
+  var emailIdx = headers.indexOf('Email');
+  var statusIdx = headers.indexOf('Status');
+  return values.filter(function(row) {
+    return String(row[statusIdx] || 'Active') === 'Active' && String(row[idIdx] || '').trim() !== '';
+  }).map(function(row) {
+    return {
+      userId: String(row[idIdx] || '').trim(),
+      name: String(row[nameIdx] || '').trim(),
+      role: String(row[roleIdx] || '').trim(),
+      jobFunction: jobIdx >= 0 ? String(row[jobIdx] || '').trim() : '',
+      email: emailIdx >= 0 ? String(row[emailIdx] || '').trim() : ''
+    };
+  });
+}
+
+function getActiveProjectOwnerById_(userId) {
+  userId = String(userId || '').trim();
+  if (!userId) return null;
+  return getActiveProjectOwnersService_().find(function(user) { return user.userId === userId; }) || null;
+}
+
+function getActiveProjectOwnerByName_(name) {
+  name = String(name || '').trim().toLowerCase();
+  if (!name) return null;
+  return getActiveProjectOwnersService_().find(function(user) { return user.name.toLowerCase() === name; }) || null;
+}
+
 function serializeProject_(item) {
   var copy = {};
   Object.keys(item || {}).forEach(function(key) {
     var value = item[key];
     copy[key] = value instanceof Date ? Utilities.formatDate(value, CONFIG.TIMEZONE, 'dd-MMM-yyyy HH:mm') : value;
   });
+  var ownerId = String(copy['Owner / Assignee'] || '').trim();
+  if (ownerId) {
+    var ownerUser = getActiveProjectOwnerById_(ownerId);
+    if (ownerUser) {
+      copy['Owner User ID'] = ownerUser.userId;
+      copy['Owner / Assignee'] = ownerUser.name;
+      copy.Owner = ownerUser.name;
+      copy.OwnerUserID = ownerUser.userId;
+    }
+  }
   return copy;
 }
