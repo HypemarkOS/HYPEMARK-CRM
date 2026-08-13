@@ -1,6 +1,6 @@
 <script>
 (function(){
-  function e(v){return String(v==null?'':v).replace(/[&<>\'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]});}
+  function e(v){return String(v==null?'':v).replace(/[&<>\'\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]});}
   function call(name,args,ok,fail){var r=google.script.run.withSuccessHandler(ok||function(){}).withFailureHandler(fail||function(x){if(window.toast)toast(x.message||String(x),'err')});return args===undefined?r[name]():r[name].apply(r,args);}
   function isDel(){var c=document.getElementById('crumb');return c&&/Deliverables/i.test(c.textContent||'');}
   function bindCreate(){if(!isDel())return;var b=document.getElementById('hmNewDeliverable');if(!b||b.dataset.hmCreateBound)return;b.dataset.hmCreateBound='1';b.onclick=openCreate;}
@@ -12,5 +12,15 @@
   function decorate(){if(!isDel())return;style();bindCreate();var rows=document.getElementById('hmDelRows');if(!rows)return;var trs=Array.prototype.slice.call(rows.querySelectorAll('tr'));call('getDeliverables',undefined,function(ds){call('getTasks',undefined,function(tasks){trs.forEach(function(row,i){var id=row.dataset.deliverableId||'';var text=row.textContent||'';if(!id){for(var j=0;j<ds.length;j++){var did=String(ds[j]['Deliverable ID']||'');if(did&&text.indexOf(did)>-1){id=did;break;}}if(!id&&ds[i])id=String(ds[i]['Deliverable ID']||'');}if(!id)return;var d=ds.find(function(v){return String(v['Deliverable ID']||'')===id;});if(!d)return;row.dataset.deliverableId=id;row.classList.add('hm-del-row');if(!row.dataset.hmClick){row.dataset.hmClick='1';row.addEventListener('click',function(ev){if(ev.target&&ev.target.closest&&ev.target.closest('select,button,a,input'))return;openDetail(d,tasks||[]);});}});});});}
   var last='';function tick(){if(!isDel())return;var r=document.getElementById('hmDelRows');var sig=(r?r.innerHTML:'').length+'|'+(r?r.querySelectorAll('tr').length:0)+'|'+!!document.getElementById('hmNewDeliverable');if(sig!==last){last=sig;setTimeout(decorate,100);setTimeout(decorate,800);}}
   window.addEventListener('load',function(){tick();setInterval(tick,1000);});
+})();
+</script>
+<script>
+(function(){
+  function e(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];});}
+  function call(n,a,ok,fail){var r=google.script.run.withSuccessHandler(ok||function(){}).withFailureHandler(fail||function(x){if(window.toast)toast(x.message||String(x),'err');});return a===undefined?r[n]():r[n].apply(r,a);}
+  var chosen='';
+  function addContent(){var dl=document.getElementById('fDeliverable');if(!dl||document.getElementById('fContent'))return;var f=document.createElement('div');f.className='field full';f.innerHTML='<label>Content</label><select id="fContent"><option value="">No content link</option></select><small style="color:#7b8491">Link this task to the content item it executes.</small>';dl.closest('.field').parentNode.insertBefore(f,dl.closest('.field').nextSibling);function load(){var id=dl.value,s=document.getElementById('fContent');if(!s)return;if(!id){s.innerHTML='<option value="">No content link</option>';return;}call('getContentForDeliverable',[id],function(a){s.innerHTML='<option value="">No content link</option>'+(a||[]).map(function(x){return'<option value="'+e(x['Content ID'])+'">'+e(x.Title||x['Content ID'])+' · '+e(x.Status||'')+'</option>';}).join('');if(chosen)s.value=chosen;});}dl.addEventListener('change',load);load();}
+  function watch(){var m=document.getElementById('modalBg');if(!m)return;new MutationObserver(function(){if(m.classList.contains('show'))setTimeout(addContent,80);}).observe(m,{attributes:true,attributeFilter:['class']});document.addEventListener('change',function(ev){if(ev.target&&ev.target.id==='fContent')chosen=ev.target.value;});document.addEventListener('click',function(ev){var b=ev.target.closest&&ev.target.closest('#fSave');if(!b)return;var s=document.getElementById('fContent'),n=document.getElementById('fName');chosen=s?s.value:'';var name=n?n.value.trim():'';if(!chosen||!name)return;setTimeout(function(){call('getTasks',undefined,function(ts){var a=(ts||[]).filter(function(t){return String(t['Task Name']||'').trim()===name;});if(!a.length)return;a.sort(function(x,y){return String(y['Updated On']||'').localeCompare(String(x['Updated On']||''));});call('linkContentTask',[chosen,a[0]['Task ID']]);});},900);},true);}
+  window.addEventListener('load',watch);
 })();
 </script>
