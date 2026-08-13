@@ -1,12 +1,109 @@
 <script>
 (function(){
+  'use strict';
   var JOBS=['SMM','Editor','DOP','Graphic Designer','DOP + Editor'];
-  function esc(v){return String(v==null?'':v).replace(/[&<>\'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]});}
+  var ROLES=['Admin','Partner','Employee'];
+  function esc(v){return String(v==null?'':v).replace(/[&<>\\'\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c];});}
   function run(n,a,ok,fail){var r=google.script.run.withSuccessHandler(ok||function(){}).withFailureHandler(fail||function(e){alert(e.message||e)});return a===undefined?r[n]():r[n].apply(r,a);}
-  function panel(ctx){if(!ctx||ctx.role!=='Admin'||document.getElementById('hmRolePanel'))return;var host=document.getElementById('content');if(!host)return;var wrap=document.createElement('div');wrap.id='hmRolePanel';wrap.className='card panel';wrap.style.marginTop='17px';wrap.innerHTML='<div class="panel-head"><div><h2>User Roles & Job Functions</h2><p>Only Admin can change system roles. Employee Job Function controls operational access.</p></div></div><div id="hmRoleRows" class="activity">Loading users...</div>';host.appendChild(wrap);load();}
-  function load(){run('getUsers',undefined,function(users){var box=document.getElementById('hmRoleRows');if(!box)return;if(!users.length){box.innerHTML='<div class="empty">No users found.</div>';return;}box.innerHTML=users.map(function(u,i){var role=String(u.Role||'Employee'),job=String(u['Job Function']||'');return '<div class="act" style="display:grid;grid-template-columns:1.2fr 1.1fr 1.3fr 1fr auto;gap:8px;align-items:center"><div><strong>'+esc(u.Name)+'</strong><small>'+esc(u.Email)+'</small></div><select id="hmRole'+i+'"><option>Admin</option><option>Partner</option><option>Employee</option></select><select id="hmJob'+i+'"><option value="">Not applicable</option>'+JOBS.map(function(j){return '<option>'+j+'</option>';}).join('')+'</select><select id="hmStatus'+i+'"><option>Active</option><option>Inactive</option></select><button class="primary" style="padding:7px 10px" onclick="window.hmSaveRole('+i+')">Save</button></div>';}).join('');users.forEach(function(u,i){document.getElementById('hmRole'+i).value=String(u.Role||'Employee')==='Manager'?'Employee':String(u.Role||'Employee');document.getElementById('hmJob'+i).value=String(u['Job Function']||'');document.getElementById('hmStatus'+i).value=String(u.Status||'Active');});box._users=users;});}
-  window.hmSaveRole=function(i){var box=document.getElementById('hmRoleRows'),u=box&&box._users?box._users[i]:null;if(!u)return;var role=document.getElementById('hmRole'+i).value,job=document.getElementById('hmJob'+i).value,status=document.getElementById('hmStatus'+i).value;run('saveUser',[{name:u.Name,email:u.Email,role:role,jobFunction:job,status:status}],function(){alert('User access updated.');load();});};
-  function watch(ctx){if(ctx.role!=='Admin')return;var last='';setInterval(function(){var c=document.getElementById('content');if(!c)return;var sig=(document.getElementById('crumb')||{}).textContent||'';if(/Settings/i.test(sig)&&sig!==last){last=sig;panel(ctx);}},500);}
+  function panel(ctx){
+    if(!ctx||ctx.role!=='Admin'||document.getElementById('hmRolePanel'))return;
+    var host=document.getElementById('content');if(!host)return;
+    var wrap=document.createElement('div');wrap.id='hmRolePanel';wrap.className='card panel';wrap.style.marginTop='17px';
+    wrap.innerHTML='<div class="panel-head"><div><h2>User Roles & Job Functions</h2><p>Only Admin can change system roles. Employee Job Function controls operational access.</p></div></div><div id="hmRoleRows" class="activity">Loading users...</div>';
+    host.appendChild(wrap);load();
+  }
+  function load(){
+    run('getUsers',undefined,function(users){
+      var box=document.getElementById('hmRoleRows');if(!box)return;
+      if(!users.length){box.innerHTML='<div class="empty">No users found.</div>';return;}
+      box.innerHTML=users.map(function(u,i){
+        var role=String(u.Role||'Employee'),job=String(u['Job Function']||'');
+        return '<div class="act" style="display:grid;grid-template-columns:1.2fr 1.1fr 1.3fr 1fr auto;gap:8px;align-items:center"><div><strong>'+esc(u.Name)+'</strong><small>'+esc(u.Email)+'</small></div><select id="hmRole'+i+'">'+ROLES.map(function(r){return '<option value="'+r+'">'+r+'</option>';}).join('')+'</select><select id="hmJob'+i+'"><option value="">Not applicable</option>'+JOBS.map(function(j){return '<option value="'+j+'">'+j+'</option>';}).join('')+'</select><select id="hmStatus'+i+'"><option>Active</option><option>Inactive</option></select><button class="primary" style="padding:7px 10px" onclick="window.hmSaveRole('+i+')">Save</button></div>';
+      }).join('');
+      users.forEach(function(u,i){
+        var role=String(u.Role||'Employee');
+        if(role==='Manager')role='Employee';
+        var roleEl=document.getElementById('hmRole'+i),jobEl=document.getElementById('hmJob'+i);
+        roleEl.value=ROLES.indexOf(role)>=0?role:'Employee';
+        jobEl.value=String(u['Job Function']||'');
+        document.getElementById('hmStatus'+i).value=String(u.Status||'Active');
+        syncJobSelect(roleEl,jobEl);
+        roleEl.addEventListener('change',function(){syncJobSelect(roleEl,jobEl);});
+      });
+      box._users=users;
+    });
+  }
+  function syncJobSelect(roleEl,jobEl){
+    var employee=roleEl&&roleEl.value==='Employee';
+    jobEl.disabled=!employee;
+    if(!employee)jobEl.value='';
+  }
+  window.hmSaveRole=function(i){
+    var box=document.getElementById('hmRoleRows'),u=box&&box._users?box._users[i]:null;if(!u)return;
+    var role=document.getElementById('hmRole'+i).value,job=document.getElementById('hmJob'+i).value,status=document.getElementById('hmStatus'+i).value;
+    run('saveUser',[{name:u.Name,email:u.Email,role:role,jobFunction:role==='Employee'?job:'',status:status}],function(){alert('User access updated.');load();});
+  };
+
+  /* Fix the Settings > Add User modal without duplicating the Settings page. */
+  function setupAddUserModal(){
+    var btn=document.getElementById('settingsAddUser');
+    if(!btn||btn.dataset.hmRolePatch==='1')return;
+    btn.dataset.hmRolePatch='1';
+    btn.addEventListener('click',function(){setTimeout(patchAddUserModal,0);},true);
+  }
+  function patchAddUserModal(){
+    var role=document.getElementById('suRole'),body=document.getElementById('modalBody'),save=document.getElementById('suSave');
+    if(!role||!body)return;
+    role.innerHTML=ROLES.map(function(r){return '<option value="'+r+'">'+r+'</option>';}).join('');
+    var existing=document.getElementById('suJobFunction');
+    if(!existing){
+      var roleField=role.closest('.field');
+      var jobField=document.createElement('div');jobField.className='field';jobField.id='suJobField';
+      jobField.innerHTML='<label>Employee Job Function</label><select id="suJobFunction"><option value="">Select job function</option>'+JOBS.map(function(j){return '<option value="'+j+'">'+j+'</option>';}).join('')+'</select>';
+      if(roleField&&roleField.parentNode)roleField.parentNode.insertBefore(jobField,roleField.nextSibling);else body.insertBefore(jobField,body.firstChild);
+      existing=document.getElementById('suJobFunction');
+    }
+    function sync(){
+      var field=document.getElementById('suJobField');
+      if(field){field.style.display=role.value==='Employee'?'':'none';}
+      if(role.value!=='Employee'&&existing)existing.value='';
+    }
+    if(!role.dataset.hmJobBound){role.dataset.hmJobBound='1';role.addEventListener('change',sync);}
+    sync();
+    if(save&&!save.dataset.hmRoleSaveBound){
+      save.dataset.hmRoleSaveBound='1';
+      save.addEventListener('click',function(e){
+        e.preventDefault();e.stopImmediatePropagation();
+        var name=document.getElementById('suName'),email=document.getElementById('suEmail'),status=document.getElementById('suStatus'),err=document.getElementById('suError');
+        var data={name:name?name.value.trim():'',email:email?email.value.trim().toLowerCase():'',role:role.value,jobFunction:role.value==='Employee'&&existing?existing.value:'',status:status?status.value:'Active'};
+        if(err)err.style.display='none';
+        if(!data.name){if(err){err.textContent='Please enter the user name.';err.style.display='block';}if(name)name.focus();return;}
+        if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(data.email)){if(err){err.textContent='Please enter a valid Google account email.';err.style.display='block';}if(email)email.focus();return;}
+        if(data.role==='Employee'&&!data.jobFunction){if(err){err.textContent='Please select an Employee Job Function.';err.style.display='block';}if(existing)existing.focus();return;}
+        save.disabled=true;save.textContent='Saving...';
+        google.script.run.withSuccessHandler(function(){
+          if(typeof window.closeModal==='function')window.closeModal();
+          if(typeof window.toast==='function')window.toast('User saved successfully.','ok');
+          if(typeof window.settings==='function')window.settings();
+        }).withFailureHandler(function(ex){
+          if(err){err.textContent=String(ex&&ex.message||ex);err.style.display='block';}
+          save.disabled=false;save.textContent='Save User';
+        }).saveUser(data);
+      },true);
+    }
+  }
+  function watch(ctx){
+    if(!ctx||ctx.role!=='Admin')return;
+    var last='';
+    setInterval(function(){
+      var c=document.getElementById('content');if(!c)return;
+      var sig=(document.getElementById('crumb')||{}).textContent||'';
+      if(/Settings/i.test(sig)&&sig!==last){last=sig;panel(ctx);}
+      setupAddUserModal();
+      var add=document.getElementById('settingsAddUser');
+      if(add&&!add.dataset.hmRolePatch)add.addEventListener('click',function(){setTimeout(patchAddUserModal,0);},true),add.dataset.hmRolePatch='1';
+    },500);
+  }
   function init(){run('getAuthContext',undefined,function(ctx){watch(ctx);});}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
