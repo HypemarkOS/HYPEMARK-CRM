@@ -8,6 +8,8 @@ const APP = {
     PROJECTS: 'Projects',
     DELIVERABLES: 'Deliverables',
     CONTENT_BANK: 'ContentBank',
+    TASKS: 'Tasks',
+    TASK_UPDATES: 'TaskUpdates',
     ACTIVITIES: 'Activities',
     CLIENT_RECEIPTS: 'ClientReceipts',
     EMPLOYEE_PAYMENTS: 'EmployeePayments',
