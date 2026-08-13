@@ -1,7 +1,8 @@
-var ENGAGEMENT_HEADERS = ['Engagement ID','Client ID','Service','Start Date','End Date','Status'];
+var ENGAGEMENT_HEADERS = ['Engagement ID','Client ID','Service','Start Date','End Date','Status','Priority'];
 
 function createEngagementService_(data) {
-  if (!data || !data.clientId) throw new Error('Client is required.');
+  data = data || {};
+  if (!data.clientId) throw new Error('Client is required.');
   if (!asText_(data.service)) throw new Error('Service is required.');
   var client = getClientService_(data.clientId);
   if (!client) throw new Error('Client not found.');
@@ -11,7 +12,8 @@ function createEngagementService_(data) {
     'Service': asText_(data.service),
     'Start Date': data.startDate ? new Date(data.startDate) : '',
     'End Date': data.endDate ? new Date(data.endDate) : '',
-    'Status': asText_(data.status) || CONFIG.DEFAULTS.CLIENT_STATUS
+    'Status': asText_(data.status) || CONFIG.DEFAULTS.CLIENT_STATUS,
+    'Priority': asText_(data.priority) || 'Medium'
   };
   appendRow_(APP.SHEETS.ENGAGEMENTS, ENGAGEMENT_HEADERS, engagement);
   recordActivity_('Engagement', engagement['Engagement ID'], 'Created engagement');
