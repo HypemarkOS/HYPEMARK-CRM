@@ -1,116 +1,27 @@
 <style id="hm-brand-fix-v10">
 /* Exact HYPEMARK logo. Artwork is unchanged. Only the presentation gets a subtle premium 3D hover treatment. */
-.brand{
-  position:relative!important;
-  height:184px!important;
-  width:100%!important;
-  margin:0 0 16px!important;
-  padding:0!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  overflow:hidden!important;
-  box-sizing:border-box!important;
-  border-radius:24px!important;
-  background:#fff!important;
-  box-shadow:0 12px 30px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.9)!important;
-  perspective:800px!important;
-}
-.brand > svg{
-  display:block!important;
-  width:auto!important;
-  height:148px!important;
-  max-width:88%!important;
-  max-height:calc(100% - 24px)!important;
-  overflow:visible!important;
-  flex:0 0 auto!important;
-  transform:translateZ(0) translateY(0) scale(1)!important;
-  transform-origin:center center!important;
-  filter:drop-shadow(0 2px 0 rgba(0,0,0,.14)) drop-shadow(0 7px 7px rgba(0,0,0,.20))!important;
-  transition:transform .28s cubic-bezier(.2,.8,.2,1),filter .28s ease!important;
-  will-change:transform,filter!important;
-}
-.brand > svg:hover{
-  transform:translateZ(18px) translateY(-6px) scale(1.07) rotateX(3deg)!important;
-  filter:drop-shadow(0 3px 0 rgba(0,0,0,.18)) drop-shadow(0 13px 12px rgba(0,0,0,.28))!important;
-}
-@media(max-width:700px){
-  .brand{height:76px!important;border-radius:18px!important;margin-bottom:12px!important;perspective:600px!important}
-  .brand > svg{height:58px!important;max-width:82%!important}
-  .brand > svg:hover{transform:translateZ(8px) translateY(-3px) scale(1.04)!important}
-}
+.brand{position:relative!important;height:184px!important;width:100%!important;margin:0 0 16px!important;padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;box-sizing:border-box!important;border-radius:24px!important;background:#fff!important;box-shadow:0 12px 30px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.9)!important;perspective:800px!important}.brand > svg{display:block!important;width:auto!important;height:148px!important;max-width:88%!important;max-height:calc(100% - 24px)!important;overflow:visible!important;flex:0 0 auto!important;transform:translateZ(0) translateY(0) scale(1)!important;transform-origin:center center!important;filter:drop-shadow(0 2px 0 rgba(0,0,0,.14)) drop-shadow(0 7px 7px rgba(0,0,0,.20))!important;transition:transform .28s cubic-bezier(.2,.8,.2,1),filter .28s ease!important;will-change:transform,filter!important}.brand > svg:hover{transform:translateZ(18px) translateY(-6px) scale(1.07) rotateX(3deg)!important;filter:drop-shadow(0 3px 0 rgba(0,0,0,.18)) drop-shadow(0 13px 12px rgba(0,0,0,.28))!important}@media(max-width:700px){.brand{height:76px!important;border-radius:18px!important;margin-bottom:12px!important;perspective:600px!important}.brand > svg{height:58px!important;max-width:82%!important}.brand > svg:hover{transform:translateZ(8px) translateY(-3px) scale(1.04)!important}}
 </style>
 <script>
 (function(){
-  var exactLogoSvg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 536 386" role="img" aria-label="HYPEMARK"><g fill="#e51b23"><path d="M197 8V91h-5l-27-16-15-6-4-4-3 1v135h21V100l4-1 4 4 24 12 2 4-1 147h20V9z"/><path d="M319 8v95l-49 27-12-4-29-15v23l40 20 103-55 1 102h21V64l-52 28-1-84z"/><path d="M337 131l-18 11 1 124h20V132z"/></g><g fill="#2b0505"><path d="M8 334v43l10 1 1-19h19l2 3v16h9v-44l-10 1-1 17H19l-1-18z"/><path d="M75 334l17 28v16h10v-16l17-28h-10l-12 19-12-19z"/><path d="M173 335h-29v43h10v-13h15l10-6 4-12-3-7z"/><path d="M211 334v44h35l-1-8h-24l1-11h20v-7h-20l-1-10h23l1-7z"/><path d="M274 334v44h9l1-27 13 22h5l13-21 1 26 8-1-1-43h-8l-16 27-18-27z"/><path d="M368 334l-20 44h10l5-10h20l5 10h10l-19-43zm5 10l7 17h-14z"/><path d="M422 334v44h9l1-13h9l9 13h11l-9-12v-3l6-5 2-5v-8l-3-6-10-5z"/><path d="M486 334v44h10v-11l6-7 15 18h11l-19-24 18-20h-11l-19 21v-21z"/></g></svg>';
-  function renderExactHypeMark(){
-    var brand=document.querySelector('.brand');
-    if(!brand)return;
-    brand.innerHTML=exactLogoSvg;
-    brand.setAttribute('aria-label','HYPEMARK');
-  }
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',renderExactHypeMark);
-  }else{
-    renderExactHypeMark();
-  }
-  window.addEventListener('load',renderExactHypeMark);
+var exactLogoSvg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 536 386" role="img" aria-label="HYPEMARK"><g fill="#e51b23"><path d="M197 8V91h-5l-27-16-15-6-4-4-3 1v135h21V100l4-1 4 4 24 12 2 4-1 147h20V9z"/><path d="M319 8v95l-49 27-12-4-29-15v23l40 20 103-55 1 102h21V64l-52 28-1-84z"/><path d="M337 131l-18 11 1 124h20V132z"/></g><g fill="#2b0505"><path d="M8 334v43l10 1 1-19h19l2 3v16h9v-44l-10 1-1 17H19l-1-18z"/><path d="M75 334l17 28v16h10v-16l17-28h-10l-12 19-12-19z"/><path d="M173 335h-29v43h10v-13h15l10-6 4-12-3-7z"/><path d="M211 334v44h35l-1-8h-24l1-11h20v-7h-20l-1-10h23l1-7z"/><path d="M274 334v44h9l1-27 13 22h5l13-21 1 26 8-1-1-43h-8l-16 27-18-27z"/><path d="M368 334l-20 44h10l5-10h20l5 10h10l-19-43zm5 10l7 17h-14z"/><path d="M422 334v44h9l1-13h9l9 13h11l-9-12v-3l6-5 2-5v-8l-3-6-10-5z"/><path d="M486 334v44h10v-11l6-7 15 18h11l-19-24 18-20h-11l-19 21v-21z"/></g></svg>';
+function renderExactHypeMark(){var brand=document.querySelector('.brand');if(!brand)return;brand.innerHTML=exactLogoSvg;brand.setAttribute('aria-label','HYPEMARK')}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',renderExactHypeMark);else renderExactHypeMark();window.addEventListener('load',renderExactHypeMark);
 })();
 </script>
 <script id="hm-client-modal-fix">
 (function(){
-  function escClient(v){return String(v==null?'':v).replace(/[&<>\'\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]})}
-  window.openClient=function(id){
-    var bg=document.getElementById('modalBg'),body=document.getElementById('modalBody'),title=document.getElementById('modalTitle');
-    if(!bg||!body||!title){console.error('HYPEMARK CRM: Add Client modal container is missing.');return;}
-    var existing=null;
-    if(id&&window.state&&Array.isArray(state.clients)) existing=state.clients.find(function(c){return String(c['Client ID'])===String(id)})||null;
-    title.textContent=existing?'Edit Client':'Add Client';
-    body.innerHTML='<form id="hmClientForm" onsubmit="return hmSaveClient(event)"><div class="form-grid">'+
-      '<div class="field"><label>Client Name *</label><input id="hmClientName" required></div>'+ 
-      '<div class="field"><label>Business Name *</label><input id="hmBusinessName" required></div>'+ 
-      '<div class="field"><label>Contact Person</label><input id="hmContactPerson"></div>'+ 
-      '<div class="field"><label>Mobile</label><input id="hmMobile" inputmode="tel"></div>'+ 
-      '<div class="field"><label>Email</label><input id="hmEmail" type="email"></div>'+ 
-      '<div class="field"><label>GST</label><input id="hmGST"></div>'+ 
-      '<div class="field full"><label>Address</label><textarea id="hmAddress"></textarea></div>'+ 
-      '</div><div id="hmClientMsg" class="notice" style="display:none"></div><div class="form-actions"><button type="button" class="secondary" onclick="closeModal()">Cancel</button><button id="hmClientSave" type="submit" class="save">'+(existing?'Save Changes':'Save Client')+'</button></div></form>';
-    if(existing){
-      document.getElementById('hmClientName').value=existing['Client Name']||'';
-      document.getElementById('hmBusinessName').value=existing['Business Name']||'';
-      document.getElementById('hmContactPerson').value=existing['Contact Person']||'';
-      document.getElementById('hmMobile').value=existing.Mobile||'';
-      document.getElementById('hmEmail').value=existing.Email||'';
-      document.getElementById('hmGST').value=existing.GST||'';
-      document.getElementById('hmAddress').value=existing.Address||'';
-    }
-    bg.classList.add('show');
-  };
-  window.hmSaveClient=function(e){
-    e.preventDefault();
-    var btn=document.getElementById('hmClientSave'),msg=document.getElementById('hmClientMsg');
-    var id=(window.state&&state.editingClientId)||'';
-    var data={clientName:document.getElementById('hmClientName').value.trim(),businessName:document.getElementById('hmBusinessName').value.trim(),contactPerson:document.getElementById('hmContactPerson').value.trim(),mobile:document.getElementById('hmMobile').value.trim(),email:document.getElementById('hmEmail').value.trim(),gst:document.getElementById('hmGST').value.trim(),address:document.getElementById('hmAddress').value.trim()};
-    var existingId='';
-    if(window.state&&Array.isArray(state.clients)&&state.clients.length){
-      var match=state.clients.find(function(c){return String(c['Client Name']||'')===data.clientName&&String(c['Business Name']||'')===data.businessName});
-      if(match&&document.getElementById('modalTitle').textContent==='Edit Client')existingId=String(match['Client ID']||'');
-    }
-    btn.disabled=true;btn.textContent='Saving...';msg.style.display='none';
-    var runner=google.script.run.withSuccessHandler(function(saved){
-      if(window.state&&Array.isArray(state.clients)){
-        var i=state.clients.findIndex(function(c){return String(c['Client ID'])===String(saved['Client ID'])});
-        if(i>=0)state.clients[i]=saved;else state.clients.push(saved);
-        state.editingClientId='';
-      }
-      closeModal();
-      if(typeof renderClientsPro==='function')renderClientsPro();
-      toast('Client '+(existingId?'updated':'created')+' successfully.','ok');
-    }).withFailureHandler(function(err){
-      btn.disabled=false;btn.textContent=document.getElementById('modalTitle').textContent==='Edit Client'?'Save Changes':'Save Client';msg.style.display='block';msg.className='notice err';msg.textContent=err&&err.message?err.message:String(err);
-    });
-    if(existingId)runner.updateClient(existingId,data);else runner.createClient(data);
-    return false;
-  };
+function escClient(v){return String(v==null?'':v).replace(/[&<>\'\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]})}
+window.openClient=function(id){var bg=document.getElementById('modalBg'),body=document.getElementById('modalBody'),title=document.getElementById('modalTitle');if(!bg||!body||!title){console.error('HYPEMARK CRM: Add Client modal container is missing.');return}var existing=null;if(id&&window.state&&Array.isArray(state.clients))existing=state.clients.find(function(c){return String(c['Client ID'])===String(id)})||null;title.textContent=existing?'Edit Client':'Add Client';body.innerHTML='<form id="hmClientForm" onsubmit="return hmSaveClient(event)"><div class="form-grid"><div class="field"><label>Client Name *</label><input id="hmClientName" required></div><div class="field"><label>Business Name *</label><input id="hmBusinessName" required></div><div class="field"><label>Contact Person</label><input id="hmContactPerson"></div><div class="field"><label>Mobile</label><input id="hmMobile" inputmode="tel"></div><div class="field"><label>Email</label><input id="hmEmail" type="email"></div><div class="field"><label>GST</label><input id="hmGST"></div><div class="field full"><label>Address</label><textarea id="hmAddress"></textarea></div></div><div id="hmClientMsg" class="notice" style="display:none"></div><div class="form-actions"><button type="button" class="secondary" onclick="closeModal()">Cancel</button><button id="hmClientSave" type="submit" class="save">'+(existing?'Save Changes':'Save Client')+'</button></div></form>';if(existing){document.getElementById('hmClientName').value=existing['Client Name']||'';document.getElementById('hmBusinessName').value=existing['Business Name']||'';document.getElementById('hmContactPerson').value=existing['Contact Person']||'';document.getElementById('hmMobile').value=existing.Mobile||'';document.getElementById('hmEmail').value=existing.Email||'';document.getElementById('hmGST').value=existing.GST||'';document.getElementById('hmAddress').value=existing.Address||''}bg.classList.add('show')};
+window.hmSaveClient=function(e){e.preventDefault();var btn=document.getElementById('hmClientSave'),msg=document.getElementById('hmClientMsg'),id=(window.state&&state.editingClientId)||'',data={clientName:document.getElementById('hmClientName').value.trim(),businessName:document.getElementById('hmBusinessName').value.trim(),contactPerson:document.getElementById('hmContactPerson').value.trim(),mobile:document.getElementById('hmMobile').value.trim(),email:document.getElementById('hmEmail').value.trim(),gst:document.getElementById('hmGST').value.trim(),address:document.getElementById('hmAddress').value.trim()},existingId='';if(window.state&&Array.isArray(state.clients)&&state.clients.length){var match=state.clients.find(function(c){return String(c['Client Name']||'')===data.clientName&&String(c['Business Name']||'')===data.businessName});if(match&&document.getElementById('modalTitle').textContent==='Edit Client')existingId=String(match['Client ID']||'')}btn.disabled=true;btn.textContent='Saving...';msg.style.display='none';var runner=google.script.run.withSuccessHandler(function(saved){if(window.state&&Array.isArray(state.clients)){var i=state.clients.findIndex(function(c){return String(c['Client ID'])===String(saved['Client ID'])});if(i>=0)state.clients[i]=saved;else state.clients.push(saved);state.editingClientId=''}closeModal();if(typeof renderClientsPro==='function')renderClientsPro();toast('Client '+(existingId?'updated':'created')+' successfully.','ok')}).withFailureHandler(function(err){btn.disabled=false;btn.textContent=document.getElementById('modalTitle').textContent==='Edit Client'?'Save Changes':'Save Client';msg.style.display='block';msg.className='notice err';msg.textContent=err&&err.message?err.message:String(err)});if(existingId)runner.updateClient(existingId,data);else runner.createClient(data);return false};
+})();
+</script>
+<script id="hm-project-owner-selector">
+(function(){
+var installed=false;
+function esc(v){return String(v==null?'':v).replace(/[&<>\'\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]})}
+function install(){var input=document.getElementById('hmPOwner');if(!input||installed)return;installed=true;var field=input.closest('.field')||input.parentElement,label=field?field.querySelector('label'):null;if(label)label.textContent='Project Owner';var select=document.createElement('select');select.id='hmPOwner';select.name='hmPOwner';select.innerHTML='<option value="">Select project owner</option>';input.parentNode.replaceChild(select,input);google.script.run.withSuccessHandler(function(users){users=Array.isArray(users)?users:[];select.innerHTML='<option value="">Select project owner</option>'+users.map(function(u){var role=String(u.role||''),jf=String(u.jobFunction||''),suffix=role==='Employee'&&jf?(' · Employee / '+jf):role?(' · '+role):'';return '<option value="'+esc(u.userId)+'">'+esc(u.name||u.email||u.userId)+esc(suffix)+'</option>'}).join('')}).withFailureHandler(function(err){select.innerHTML='<option value="">Unable to load project owners</option>';select.disabled=true;if(window.toast)window.toast(err.message||String(err),'err')}).getProjectOwners()}
+function watch(){install();var observer=new MutationObserver(function(){if(!document.getElementById('hmPOwner'))installed=false;install()});if(document.body)observer.observe(document.body,{childList:true,subtree:true})}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',watch);else watch();window.addEventListener('load',watch);
 })();
 </script>
