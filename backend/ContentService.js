@@ -1,4 +1,4 @@
-var CONTENT_HEADERS = ['Content ID','Deliverable ID','Title','Status','Assigned To','Publish Date'];
+var CONTENT_HEADERS = ['Content ID','Deliverable ID','Title','Status','Priority','Assigned To','Publish Date'];
 
 function contentNormalizeHeader_(value) {
   return String(value == null ? '' : value).trim().toLowerCase().replace(/\s+/g, ' ');
@@ -13,7 +13,7 @@ function contentFindColumn_(headers, name) {
 }
 
 function contentSerializeValue_(value) {
-  if (value instanceof Date) return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  if (value instanceof Date) return Utilities.formatDate(value, CONFIG.TIMEZONE, 'yyyy-MM-dd');
   if (value == null) return '';
   return value;
 }
@@ -21,12 +21,14 @@ function contentSerializeValue_(value) {
 function createContentService_(data) {
   if (!data || !data.deliverableId) throw new Error('Deliverable is required.');
   if (!asText_(data.title)) throw new Error('Content title is required.');
+  if (!getDeliverableService_(data.deliverableId)) throw new Error('Deliverable not found.');
 
   var item = {
     'Content ID': generateId_(CONFIG.ID_PREFIX.CONTENT),
     'Deliverable ID': asText_(data.deliverableId),
     'Title': asText_(data.title),
     'Status': asText_(data.status) || CONFIG.DEFAULTS.DELIVERABLE_STATUS,
+    'Priority': asText_(data.priority) || CONFIG.DEFAULTS.PRIORITY,
     'Assigned To': asText_(data.assignedTo),
     'Publish Date': data.publishDate ? new Date(data.publishDate) : ''
   };
@@ -34,12 +36,12 @@ function createContentService_(data) {
   appendRow_(APP.SHEETS.CONTENT_BANK, CONTENT_HEADERS, item);
   recordActivity_('Content', item['Content ID'], 'Created content');
 
-  // Never return a native Date to google.script.run.
   return {
     'Content ID': item['Content ID'],
     'Deliverable ID': item['Deliverable ID'],
     'Title': item['Title'],
     'Status': item['Status'],
+    'Priority': item['Priority'],
     'Assigned To': item['Assigned To'],
     'Publish Date': contentSerializeValue_(item['Publish Date'])
   };
@@ -57,6 +59,7 @@ function getContentService_(deliverableId) {
   var deliverableCol = contentFindColumn_(headers, 'Deliverable ID');
   var titleCol = contentFindColumn_(headers, 'Title');
   var statusCol = contentFindColumn_(headers, 'Status');
+  var priorityCol = contentFindColumn_(headers, 'Priority');
   var assignedCol = contentFindColumn_(headers, 'Assigned To');
   var publishCol = contentFindColumn_(headers, 'Publish Date');
 
@@ -71,6 +74,7 @@ function getContentService_(deliverableId) {
       'Deliverable ID': deliverableCol >= 0 ? contentSerializeValue_(row[deliverableCol]) : '',
       'Title': titleCol >= 0 ? contentSerializeValue_(row[titleCol]) : '',
       'Status': statusCol >= 0 ? contentSerializeValue_(row[statusCol]) : '',
+      'Priority': priorityCol >= 0 ? contentSerializeValue_(row[priorityCol]) : '',
       'Assigned To': assignedCol >= 0 ? contentSerializeValue_(row[assignedCol]) : '',
       'Publish Date': publishCol >= 0 ? contentSerializeValue_(row[publishCol]) : ''
     };
