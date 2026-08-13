@@ -25,7 +25,6 @@ function ensureProjectSheetHeaders_() {
 
 function createProjectService_(data) {
   data = data || {};
-
   var clientId = asText_(data.clientId || data.ClientID || data['Client ID']);
   var projectName = asText_(data.projectName || data.Name || data['Project Name']);
   var engagementId = asText_(data.engagementId || data.EngagementID || data['Engagement ID']);
@@ -39,7 +38,6 @@ function createProjectService_(data) {
 
   if (!clientId) throw new Error('Client is required.');
   if (!projectName) throw new Error('Project Name is required.');
-
   var client = getClientService_(clientId);
   if (!client) throw new Error('Client not found.');
 
@@ -80,7 +78,6 @@ function createProjectService_(data) {
   var headers = ensureProjectSheetHeaders_();
   var row = headers.map(function(header) { return project[header] !== undefined ? project[header] : ''; });
   sheet.getRange(sheet.getLastRow() + 1, 1, 1, headers.length).setValues([row]);
-
   recordActivity_('Project', project['Project ID'], 'Created project');
   return serializeProject_(project);
 }
@@ -105,6 +102,11 @@ function getProjectService_(projectId) {
   return projects.find(function(project) { return project['Project ID'] === projectId; }) || null;
 }
 
+function getProjectOwners() {
+  requirePermission_(AUTH_PERMISSIONS.PROJECTS);
+  return getActiveProjectOwnersService_();
+}
+
 function getActiveProjectOwnersService_() {
   var sheet = getCRMSpreadsheet_().getSheetByName(APP.SHEETS.USERS);
   if (!sheet || sheet.getLastRow() < 2) return [];
@@ -119,13 +121,7 @@ function getActiveProjectOwnersService_() {
   return values.filter(function(row) {
     return String(row[statusIdx] || 'Active') === 'Active' && String(row[idIdx] || '').trim() !== '';
   }).map(function(row) {
-    return {
-      userId: String(row[idIdx] || '').trim(),
-      name: String(row[nameIdx] || '').trim(),
-      role: String(row[roleIdx] || '').trim(),
-      jobFunction: jobIdx >= 0 ? String(row[jobIdx] || '').trim() : '',
-      email: emailIdx >= 0 ? String(row[emailIdx] || '').trim() : ''
-    };
+    return {userId:String(row[idIdx] || '').trim(),name:String(row[nameIdx] || '').trim(),role:String(row[roleIdx] || '').trim(),jobFunction:jobIdx>=0?String(row[jobIdx] || '').trim():'',email:emailIdx>=0?String(row[emailIdx] || '').trim():''};
   });
 }
 
