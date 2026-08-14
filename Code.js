@@ -14,13 +14,14 @@ function doGet(e) {
     var activities=HtmlService.createHtmlOutputFromFile('Activities').getContent();
     var settings=HtmlService.createHtmlOutputFromFile('Settings').getContent();
     var tasks=HtmlService.createHtmlOutputFromFile('Tasks').getContent();
+    var contentTaskUI=HtmlService.createHtmlOutputFromFile('ContentTaskUI').getContent();
     var tasksNav=HtmlService.createHtmlOutputFromFile('TasksNav').getContent();
     var roleNav=HtmlService.createHtmlOutputFromFile('RoleNav').getContent();
     var roleManagement=HtmlService.createHtmlOutputFromFile('RoleManagement').getContent();
     var deliverableTaskSync=HtmlService.createHtmlOutputFromFile('DeliverableTaskSync').getContent();
     var html=output.getContent();
     html=html.replace('</head>',theme+premiumShell+brandFix+'</head>');
-    html=html.replace('</body>',clientsPro+contentPro+paymentsBalances+reports+activities+settings+projectsPro+tasks+tasksNav+roleNav+roleManagement+deliverableTaskSync+'</body>');
+    html=html.replace('</body>',clientsPro+contentPro+paymentsBalances+reports+activities+settings+projectsPro+tasks+contentTaskUI+tasksNav+roleNav+roleManagement+deliverableTaskSync+'</body>');
     output=HtmlService.createHtmlOutput(html);
   }
   return output.setTitle(auth.authenticated?'HYPEMARK CRM':'Sign in | HYPEMARK CRM').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -51,7 +52,7 @@ function getContentForDeliverable(deliverableId){requirePermission_(AUTH_PERMISS
 function createPayment(data){requirePermission_(AUTH_PERMISSIONS.FINANCE_ALL);return createPaymentService_(data);} function getPayments(clientId,type){var ctx=requireAuth_();if(ctx.permissions.indexOf(AUTH_PERMISSIONS.FINANCE_ALL)<0&&ctx.permissions.indexOf(AUTH_PERMISSIONS.FINANCE_OWN)<0)throw new Error('You do not have permission to access payments.');if(ctx.role===AUTH_ROLES.EMPLOYEE)return getPaymentsForUser_(ctx,clientId,type);return getPaymentsService_(clientId,type);} function getPaymentOptions(){var ctx=requireAuth_();if(ctx.permissions.indexOf(AUTH_PERMISSIONS.FINANCE_ALL)<0&&ctx.permissions.indexOf(AUTH_PERMISSIONS.FINANCE_OWN)<0)throw new Error('You do not have permission to access payment options.');return getPaymentOptionsService_();} function getReceiptOptions(){requirePermission_(AUTH_PERMISSIONS.FINANCE_ALL);return getReceiptOptionsService_();}
 function getClientProfitability(clientId){requirePermission_(AUTH_PERMISSIONS.PROFITABILITY);return getClientProfitabilityService_(clientId);} function getProfitabilitySummary(){requirePermission_(AUTH_PERMISSIONS.PROFITABILITY);return getProfitabilitySummaryService_();}
 function getActivities(){var ctx=requireAuth_();if(ctx.permissions.indexOf(AUTH_PERMISSIONS.ACTIVITIES_ALL)<0&&ctx.permissions.indexOf(AUTH_PERMISSIONS.ACTIVITIES_OWN)<0)throw new Error('You do not have permission to access activities.');return ctx.permissions.indexOf(AUTH_PERMISSIONS.ACTIVITIES_ALL)>=0?getActivitiesService_():getActivitiesForUser_(ctx);}
-function getDashboard(){var ctx=requirePermission_(AUTH_PERMISSIONS.DASHBOARD);var d=getDashboardService_();if(ctx.role==='Employee')return getEmployeeDashboardService_(ctx);if(ctx.permissions.indexOf(AUTH_PERMISSIONS.FINANCE_ALL)<0){d.clientReceipts=0;d.employeePayments=0;d.miscExpenses=0;d.totalExpenses=0;d.netContribution=0;d.allocatedAmount=0;d.unallocatedAmount=0;d.pendingReceipts=0;d.clientProfitability=[];}if(ctx.permissions.indexOf(AUTH_PERMISSIONS.ACTIVITIES_ALL)<0)d.recentActivities=getActivitiesForUser_(ctx);return d;}
+function getDashboard(){var ctx=requirePermission_(AUTH_PERMISSIONS.DASHBOARD);var d=getDashboardService_();if(ctx.role==='Employee')return getEmployeeDashboardService_(ctx);if(ctx.permissions.indexOf(AUTH_PERMISSIONS.FINANCE_ALL)<0){d.clientReceipts=0;d.employeePayments=0;d.miscExpenses=0;d.totalExpenses=0;d.netContribution=0;d.allocatedAmount=0;d.unallocatedAmount=0;d.clientProfitability=[];}if(ctx.permissions.indexOf(AUTH_PERMISSIONS.ACTIVITIES_ALL)<0)d.recentActivities=getActivitiesForUser_(ctx);return d;}
 function getPaymentsForUser_(ctx,clientId,type){return getPaymentsService_(clientId,type).filter(function(p){return p.Type!=='Employee Payment'||String(p.Employee||'').trim().toLowerCase()===String(ctx.name||'').trim().toLowerCase();});}
 function getActivitiesForUser_(ctx){return getActivitiesService_().filter(function(a){return String(a.User||'').trim().toLowerCase()===String(ctx.name||'').trim().toLowerCase();});}
 function getTaskOptions(){return getTaskOptionsFast();}
