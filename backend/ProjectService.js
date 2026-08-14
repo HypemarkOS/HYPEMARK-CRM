@@ -76,6 +76,7 @@ function createProjectService_(data) {
 
   var sheet = getCRMSpreadsheet_().getSheetByName(APP.SHEETS.PROJECTS);
   var headers = ensureProjectSheetHeaders_();
+  if (typeof repairProjectStatusValidation === 'function') repairProjectStatusValidation();
   var row = headers.map(function(header) { return project[header] !== undefined ? project[header] : ''; });
   sheet.getRange(sheet.getLastRow() + 1, 1, 1, headers.length).setValues([row]);
   recordActivity_('Project', project['Project ID'], 'Created project');
