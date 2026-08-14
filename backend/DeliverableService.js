@@ -123,3 +123,20 @@ function updateDeliverableStatusService_(id, status) {
   }
   throw new Error('Deliverable not found.');
 }
+
+function getDeliverableAssigneesService_() {
+  var users = [];
+  if (typeof getUsersService_ === 'function') users = getUsersService_() || [];
+  else if (typeof getUsers === 'function') users = getUsers() || [];
+  return users.filter(function(u) {
+    var status = String(u.Status || u.status || 'Active').toLowerCase();
+    return status === 'active' || status === '';
+  }).map(function(u) {
+    return {
+      id: u['User ID'] || u.userId || u.ID || u.Email || u.email || '',
+      name: u.Name || u.name || u.Email || u.email || '',
+      role: u.Role || u.role || '',
+      jobFunction: u['Job Function'] || u.jobFunction || ''
+    };
+  }).filter(function(u) { return u.id && u.name; });
+}
