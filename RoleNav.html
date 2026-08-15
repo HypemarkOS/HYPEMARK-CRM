@@ -50,7 +50,7 @@
     window.__hmCentralRouterInstalled=true;window.__hmOriginalShow=window.show;window.show=route;
     document.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('.nav button[data-page]'):null;if(!b)return;var p=b.getAttribute('data-page');if(!p)return;ev.preventDefault();ev.stopImmediatePropagation();route(p);},true);
     window.addEventListener('popstate',function(){route(new URLSearchParams(location.search).get('page')||'dashboard');});
-    var initial=new URLSearchParams(location.search).get('page');if(initial)setTimeout(function(){route(initial);},50);
+    var initial=new URLSearchParams(location.search).get('page')||'dashboard';setTimeout(function(){route(initial);},50);
   }
   function init(){installRouter();initRoleNav();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
