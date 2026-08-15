@@ -5,7 +5,8 @@
   var ADMIN_PAGES=['dashboard','clients','projects','tasks','deliverables','content','payments','reports','activities','settings'];
   var PARTNER_PAGES=['dashboard','clients','projects','tasks','deliverables','content','payments','reports'];
   var EMPLOYEE_PAGES=['dashboard','projects','tasks','deliverables','content'];
-  function esc(v){return String(v==null?'':v).replace(/[&<>\\'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\\"':'&quot;'}[c];});}
+  function esc(v){return String(v==null?'':v).replace(/[&<>\\'\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c];});}
+  function navCall(name,args,ok,fail){var r=google.script.run.withSuccessHandler(ok||function(){}).withFailureHandler(fail||function(){});return args===undefined?r[name]():r[name].apply(r,args)}
   function allowedPages(ctx){
     if(ctx.role==='Admin')return ADMIN_PAGES.reduce(function(o,p){o[p]=true;return o;},{});
     if(ctx.role==='Partner')return PARTNER_PAGES.reduce(function(o,p){o[p]=true;return o;},{});
@@ -20,7 +21,7 @@
     var user=document.querySelector('.user');if(user)user.textContent=(ctx.name||'User')+' · '+(ctx.role||'')+(ctx.jobFunction?' · '+ctx.jobFunction:'');
     window.__hmAuthContext=ctx;
   }
-  function initRoleNav(){if(typeof google==='undefined'||!google.script||!google.script.run)return;google.script.run.withSuccessHandler(applyRoleNav).withFailureHandler(function(){}).getAuthContext();}
+  function initRoleNav(){if(typeof google==='undefined'||!google.script||!google.script.run)return;navCall('getAuthContext',undefined,applyRoleNav,function(){});}
   function handler(page){
     var map={dashboard:['dashboard'],clients:['clients'],projects:['projects','projectPage'],tasks:['showTasksPage'],deliverables:['deliverables','deliverablesPage'],content:['contentBank','contentPage'],payments:['payments'],reports:['reports'],activities:['activities'],settings:['settings']};
     var names=map[page]||[];
@@ -35,6 +36,30 @@
     if(source.indexOf("show('"+page+"')")>=0||source.indexOf('show("'+page+'")')>=0)return false;
     try{b.onclick.call(b,{preventDefault:function(){},stopPropagation:function(){}});return true;}catch(e){return false;}
   }
+  function executeModuleHtml(html){
+    if(!html)return false;
+    var holder=document.createElement('div');holder.innerHTML=html;
+    var scripts=holder.querySelectorAll('script');
+    if(!scripts.length)return false;
+    for(var i=0;i<scripts.length;i++){
+      var s=document.createElement('script');
+      if(scripts[i].src)s.src=scripts[i].src;
+      else s.text=scripts[i].textContent||scripts[i].innerHTML||'';
+      document.body.appendChild(s);
+      document.body.removeChild(s);
+    }
+    return true;
+  }
+  var moduleLoadStarted=false;
+  function loadNavigationFix(done){
+    if(handler('payments')&&handler('content')){done(true);return;}
+    if(moduleLoadStarted){setTimeout(function(){done(!!(handler('payments')||handler('content')));},150);return;}
+    moduleLoadStarted=true;
+    navCall('include',['NavigationFix'],function(html){
+      try{executeModuleHtml(html);}catch(e){}
+      setTimeout(function(){done(!!(handler('payments')||handler('content')));},0);
+    },function(){done(false);});
+  }
   function route(page){
     page=String(page||'dashboard').toLowerCase();if(page==='home')page='dashboard';setState(page);
     try{history.replaceState({},'',location.pathname+'?page='+encodeURIComponent(page));}catch(e){}
@@ -42,12 +67,32 @@
     var h=handler(page);if(h){h();return true;}
     if(invokeButtonFallback(page))return true;
     var attempts=0;
-    var retry=function(){attempts++;var x=handler(page);if(x){x();return;}if(invokeButtonFallback(page))return;if(attempts<25){setTimeout(retry,100);return;}var c=document.getElementById('content');if(c)c.innerHTML='<div class="card panel"><h2>Unable to open '+esc(page)+'</h2><div class="notice err">The page module did not finish loading. Please refresh once.</div></div>';};
+    var retry=function(){
+      attempts++;
+      var x=handler(page);
+      if(x){x();return;}
+      if(invokeButtonFallback(page))return;
+      if(attempts===1&&(page==='content'||page==='payments')){
+        loadNavigationFix(function(){
+          var loaded=handler(page);
+          if(loaded){loaded();return;}
+          continueRetry();
+        });
+        return;
+      }
+      continueRetry();
+    };
+    var continueRetry=function(){
+      if(attempts<30){setTimeout(retry,100);return;}
+      var c=document.getElementById('content');if(c)c.innerHTML='<div class="card panel"><h2>Unable to open '+esc(page)+'</h2><div class="notice err">The page module did not finish loading. Please refresh once.</div></div>';
+    };
     retry();return false;
   }
   function installRouter(){
     if(window.__hmCentralRouterInstalled)return;
-    window.__hmCentralRouterInstalled=true;window.__hmOriginalShow=window.show;window.show=route;
+    window.__hmCentralRouterInstalled=true;
+    window.__hmOriginalShow=window.show;
+    window.show=route;
     document.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('.nav button[data-page]'):null;if(!b)return;var p=b.getAttribute('data-page');if(!p)return;ev.preventDefault();ev.stopImmediatePropagation();route(p);},true);
     window.addEventListener('popstate',function(){route(new URLSearchParams(location.search).get('page')||'dashboard');});
     var initial=new URLSearchParams(location.search).get('page')||'dashboard';setTimeout(function(){route(initial);},50);
