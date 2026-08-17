@@ -16,14 +16,13 @@ function doGet(e) {
     var tasks=HtmlService.createHtmlOutputFromFile('Tasks').getContent();
     var contentTaskUI=HtmlService.createHtmlOutputFromFile('ContentTaskUI').getContent();
     var contentDetailUI=HtmlService.createHtmlOutputFromFile('ContentDetailUI').getContent();
-    var contentSaveFix=HtmlService.createHtmlOutputFromFile('ContentSaveFix').getContent();
     var tasksNav=HtmlService.createHtmlOutputFromFile('TasksNav').getContent();
     var roleNav=HtmlService.createHtmlOutputFromFile('RoleNav').getContent();
     var roleManagement=HtmlService.createHtmlOutputFromFile('RoleManagement').getContent();
     var deliverableTaskSync=HtmlService.createHtmlOutputFromFile('DeliverableTaskSync').getContent();
     var html=output.getContent();
     html=html.replace('</head>',theme+premiumShell+brandFix+'</head>');
-    html=html.replace('</body>',clientsPro+contentPro+paymentsBalances+reports+activities+settings+projectsPro+tasks+contentTaskUI+contentDetailUI+contentSaveFix+tasksNav+roleNav+roleManagement+deliverableTaskSync+'</body>');
+    html=html.replace('</body>',clientsPro+contentPro+paymentsBalances+reports+activities+settings+projectsPro+tasks+contentTaskUI+contentDetailUI+tasksNav+roleNav+roleManagement+deliverableTaskSync+'</body>');
     output=HtmlService.createHtmlOutput(html);
   }
   return output.setTitle(auth.authenticated?'HYPEMARK CRM':'Sign in | HYPEMARK CRM').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
