@@ -1,0 +1,27 @@
+<script>
+(function(){
+  'use strict';
+  function wire(){
+    var btn=document.getElementById('hmSaveContent');
+    if(!btn||btn.__hmDirectSave)return;
+    btn.__hmDirectSave=true;
+    btn.style.pointerEvents='auto';
+    btn.style.position='relative';
+    btn.style.zIndex='99999';
+    btn.onclick=function(ev){
+      if(ev){ev.preventDefault();ev.stopPropagation();}
+      var id=btn.getAttribute('data-content-id');
+      if(typeof window.saveContent==='function'){
+        window.saveContent(id);
+      }else if(window.google&&google.script&&google.script.run){
+        btn.disabled=true;btn.textContent='Saving...';
+        var data={title:(document.getElementById('hmEditTitle')||{}).value||'',platform:(document.getElementById('hmEditPlatform')||{}).value||'',contentType:(document.getElementById('hmEditType')||{}).value||'',creativeBrief:(document.getElementById('hmEditBrief')||{}).value||'',assetsInstructions:(document.getElementById('hmEditAssets')||{}).value||'',status:(document.getElementById('hmEditStatus')||{}).value||'',priority:(document.getElementById('hmEditPriority')||{}).value||'',assignedTo:(document.getElementById('hmEditAssigned')||{}).value||'',publishDate:(document.getElementById('hmEditPublish')||{}).value||''};
+        google.script.run.withSuccessHandler(function(){if(window.toast)toast('Content updated successfully.','ok');else alert('Content updated successfully.');btn.disabled=false;btn.textContent='Save Changes';}).withFailureHandler(function(e){btn.disabled=false;btn.textContent='Save Changes';if(window.toast)toast('Unable to save content: '+(e&&e.message?e.message:String(e)),'err');else alert('Unable to save content: '+(e&&e.message?e.message:String(e)));}).updateContent(id,data);
+      }
+    };
+  }
+  var observer=new MutationObserver(wire);
+  function start(){wire();observer.observe(document.body,{childList:true,subtree:true});setInterval(wire,500);}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+})();
+</script>
