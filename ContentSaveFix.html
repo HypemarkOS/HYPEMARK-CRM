@@ -1,6 +1,13 @@
 <script>
 (function(){
   'use strict';
+  function showMessage(message,type){
+    if(typeof window.toast==='function'){
+      window.toast(message,type||'err');
+    }else{
+      alert(message);
+    }
+  }
   function buildData(){
     return {
       title:(document.getElementById('hmEditTitle')||{}).value||'',
@@ -15,13 +22,14 @@
     };
   }
   function directSave(btn,id){
-    if(!window.google||!google.script||!google.script.run){alert('CRM connection is unavailable. Please refresh and try again.');return;}
+    if(!window.google||!google.script||!google.script.run){showMessage('CRM connection is unavailable. Please refresh and try again.','err');return;}
+    if(!id){showMessage('Content ID is missing. Refresh Content Bank and reopen the item.','err');return;}
     btn.disabled=true;btn.textContent='Saving...';
     google.script.run
       .withSuccessHandler(function(updated){
         btn.disabled=false;btn.textContent='Save Changes';
-        if(window.toast)toast('Content updated successfully.','ok');else alert('Content updated successfully.');
-        if(typeof window.closeModal==='function')closeModal();
+        showMessage('Content updated successfully.','ok');
+        if(typeof window.closeModal==='function')window.closeModal();
         if(window.__hmContent&&updated){window.__hmContent=window.__hmContent.map(function(x){return String(x['Content ID'])===String(id)?updated:x;});}
         if(typeof window.renderContent==='function')window.renderContent();
         else if(typeof window.contentBank==='function')window.contentBank();
@@ -29,7 +37,8 @@
       .withFailureHandler(function(e){
         btn.disabled=false;btn.textContent='Save Changes';
         var msg='Unable to save content: '+(e&&e.message?e.message:String(e));
-        if(window.toast)toast(msg,'err');else alert(msg);
+        showMessage(msg,'err');
+        console.error('Content save failed:',e);
       })
       .updateContent(id,buildData());
   }
@@ -42,9 +51,7 @@
     btn.style.zIndex='99999';
     btn.onclick=function(ev){
       if(ev){ev.preventDefault();ev.stopImmediatePropagation();}
-      var id=btn.getAttribute('data-content-id');
-      if(!id){if(window.toast)toast('Content ID is missing. Refresh Content Bank and reopen the item.','err');return;}
-      directSave(btn,id);
+      directSave(btn,btn.getAttribute('data-content-id'));
     };
   }
   function start(){
