@@ -6,34 +6,15 @@
   var PARTNER_PAGES=['dashboard','clients','projects','tasks','deliverables','content','payments','reports'];
   var EMPLOYEE_PAGES=['dashboard','projects','tasks','deliverables','content'];
   function esc(v){return String(v==null?'':v).replace(/[&<>\'\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c];});}
-  function allowedPages(ctx){
-    if(ctx.role==='Admin')return ADMIN_PAGES.reduce(function(o,p){o[p]=true;return o;},{});
-    if(ctx.role==='Partner')return PARTNER_PAGES.reduce(function(o,p){o[p]=true;return o;},{});
-    var allowed={};(ctx.permissions||[]).forEach(function(p){allowed[p]=true;});
-    return EMPLOYEE_PAGES.reduce(function(o,p){var perm=pagePermission[p];if(p==='dashboard'||(perm&&allowed[perm]))o[p]=true;return o;},{});
-  }
-  function applyRoleNav(ctx){
-    if(!ctx||!ctx.authenticated)return;
-    var allowed=allowedPages(ctx);
-    document.querySelectorAll('.nav button[data-page]').forEach(function(btn){if(!allowed[btn.getAttribute('data-page')])btn.remove();});
-    document.querySelectorAll('.nav .section').forEach(function(section){var next=section.nextElementSibling,has=false;while(next&&!next.classList.contains('section')){if(next.matches&&next.matches('button[data-page]')){has=true;break;}next=next.nextElementSibling;}if(!has)section.remove();});
-    var user=document.querySelector('.user');if(user)user.textContent=(ctx.name||'User')+' · '+(ctx.role||'')+(ctx.jobFunction?' · '+ctx.jobFunction:'');
-    window.__hmAuthContext=ctx;
-    var requested=new URLSearchParams(location.search).get('page')||'dashboard';
-    if(!allowed[requested])route('dashboard');
-  }
+  function allowedPages(ctx){if(ctx.role==='Admin')return ADMIN_PAGES.reduce(function(o,p){o[p]=true;return o;},{});if(ctx.role==='Partner')return PARTNER_PAGES.reduce(function(o,p){o[p]=true;return o;},{});var allowed={};(ctx.permissions||[]).forEach(function(p){allowed[p]=true;});return EMPLOYEE_PAGES.reduce(function(o,p){var perm=pagePermission[p];if(p==='dashboard'||(perm&&allowed[perm]))o[p]=true;return o;},{});}
+  function applyRoleNav(ctx){if(!ctx||!ctx.authenticated)return;var allowed=allowedPages(ctx);document.querySelectorAll('.nav button[data-page]').forEach(function(btn){if(!allowed[btn.getAttribute('data-page')])btn.remove();});document.querySelectorAll('.nav .section').forEach(function(section){var next=section.nextElementSibling,has=false;while(next&&!next.classList.contains('section')){if(next.matches&&next.matches('button[data-page]')){has=true;break;}next=next.nextElementSibling;}if(!has)section.remove();});var user=document.querySelector('.user');if(user)user.textContent=(ctx.name||'User')+' · '+(ctx.role||'')+(ctx.jobFunction?' · '+ctx.jobFunction:'');window.__hmAuthContext=ctx;var requested=new URLSearchParams(location.search).get('page')||'dashboard';if(!allowed[requested])route('dashboard');}
   function initRoleNav(){if(typeof google==='undefined'||!google.script||!google.script.run)return;google.script.run.withSuccessHandler(applyRoleNav).withFailureHandler(function(e){console.warn('Role navigation auth lookup failed',e);}).getAuthContext();}
   function handler(page){var map={dashboard:['dashboard'],clients:['clients'],projects:['projects','projectPage'],tasks:['showTasksPage'],deliverables:['deliverables','deliverablesPage'],content:['contentBank','contentPage'],payments:['payments'],reports:['reports'],activities:['activities'],settings:['settings']};var names=map[page]||[];for(var i=0;i<names.length;i++)if(typeof window[names[i]]==='function')return window[names[i]];return null;}
-  function setState(page){document.querySelectorAll('.nav button[data-page]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-page')===page);});var c=document.getElementById('crumb');if(c)c.textContent='Workspace / '+page.charAt(0).toUpperCase()+page.slice(1);}
-  function route(page){
-    page=String(page||'dashboard').toLowerCase();if(page==='home')page='dashboard';
-    var allowed=window.__hmAuthContext?allowedPages(window.__hmAuthContext):null;if(allowed&&!allowed[page])page='dashboard';
-    setState(page);try{history.replaceState({},'',location.pathname+'?page='+encodeURIComponent(page));}catch(e){}
-    var h=handler(page);
-    if(h){try{h();return true;}catch(e){console.error('CRM route failed:',page,e);var c=document.getElementById('content');if(c)c.innerHTML='<div class="card panel"><h2>Unable to open '+esc(page)+'</h2><div class="notice err">'+esc(e&&e.message?e.message:String(e))+'</div></div>';return false;}}
-    var c=document.getElementById('content');if(c)c.innerHTML='<div class="card panel"><h2>Module unavailable</h2><div class="notice err">The '+esc(page)+' module is not loaded.</div></div>';return false;
-  }
-  function installRouter(){if(window.__hmCentralRouterInstalled)return;window.__hmCentralRouterInstalled=true;window.__hmOriginalShow=window.show;window.show=route;document.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('.nav button[data-page]'):null;if(!b)return;var p=b.getAttribute('data-page');if(!p)return;ev.preventDefault();ev.stopImmediatePropagation();route(p);},true);window.addEventListener('popstate',function(){route(new URLSearchParams(location.search).get('page')||'dashboard');});}
+  function setState(page){document.querySelectorAll('.nav button[data-page]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-page')===page);});var c=document.getElementById('crumb');if(c)c.textContent='Workspace / '+page.charAt(0).toUpperCase()+page.slice(1);window.__hmCurrentPage=page;}
+  function route(page){page=String(page||'dashboard').toLowerCase();if(page==='home')page='dashboard';var allowed=window.__hmAuthContext?allowedPages(window.__hmAuthContext):null;if(allowed&&!allowed[page])page='dashboard';setState(page);try{history.replaceState({},'',location.pathname+'?page='+encodeURIComponent(page));}catch(e){}var h=handler(page);if(h){try{h();return true;}catch(e){console.error('CRM route failed:',page,e);var c=document.getElementById('content');if(c)c.innerHTML='<div class="card panel"><h2>Unable to open '+esc(page)+'</h2><div class="notice err">'+esc(e&&e.message?e.message:String(e))+'</div></div>';return false;}}var c=document.getElementById('content');if(c)c.innerHTML='<div class="card panel"><h2>Module unavailable</h2><div class="notice err">The '+esc(page)+' module is not loaded.</div></div>';return false;}
+  function guardRenderer(name,page){var fn=window[name];if(typeof fn!=='function'||fn.__hmRouteGuard)return;var guarded=function(){if(window.__hmCurrentPage!==page)return;var c=document.getElementById('content');if(!c)return;return fn.apply(this,arguments);};guarded.__hmRouteGuard=true;guarded.__hmOriginal=fn;window[name]=guarded;}
+  function installAsyncGuards(){guardRenderer('renderDashboard','dashboard');guardRenderer('renderEmployeeDashboard','dashboard');}
+  function installRouter(){if(window.__hmCentralRouterInstalled)return;window.__hmCentralRouterInstalled=true;window.__hmOriginalShow=window.show;window.show=route;installAsyncGuards();document.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('.nav button[data-page]'):null;if(!b)return;var p=b.getAttribute('data-page');if(!p)return;ev.preventDefault();ev.stopImmediatePropagation();route(p);},true);window.addEventListener('popstate',function(){route(new URLSearchParams(location.search).get('page')||'dashboard');});}
   function init(){installRouter();initRoleNav();var initial=new URLSearchParams(location.search).get('page')||'dashboard';setTimeout(function(){route(initial);},0);}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
