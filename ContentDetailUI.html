@@ -5,7 +5,7 @@
 (function(){
 'use strict';
 function esc(v){return String(v==null?'':v).replace(/[&<>\\"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','\\"':'&quot;',"'":'&#39;'}[c];});}
-function notify(message,type){if(window.toast){window.toast(message,type||'err');}else{alert(message);}}
+function notify(message,type){if(typeof window.toast==='function'){window.toast(message,type||'err');}else{alert(message);}}
 function call(name,args,ok,fail){var r=google.script.run.withSuccessHandler(ok||function(){}).withFailureHandler(fail||function(e){notify(e&&e.message?e.message:String(e),'err');});return args===undefined?r[name]():r[name].apply(r,args);}
 function findContentId(row){var id=row.getAttribute('data-content-id');if(id)return id;var sub=row.querySelector('.hm-content-sub');var text=sub?sub.textContent:'';var m=text.match(/(CNT-[A-Za-z0-9_-]+)/);return m?m[1]:'';}
 function bindRows(){var rows=document.querySelectorAll('#hmContentRows tr');Array.prototype.forEach.call(rows,function(row){if(row.dataset.hmContentBound)return;var id=findContentId(row);if(!id)return;row.dataset.hmContentBound='1';row.classList.add('hm-content-clickable');row.title='Open content details';row.addEventListener('click',function(){open(id);});});}
