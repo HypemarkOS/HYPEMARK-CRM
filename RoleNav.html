@@ -5,8 +5,7 @@
   var ADMIN_PAGES=['dashboard','clients','projects','tasks','deliverables','content','payments','reports','activities','settings'];
   var PARTNER_PAGES=['dashboard','clients','projects','tasks','deliverables','content','payments','reports'];
   var EMPLOYEE_PAGES=['dashboard','projects','tasks','deliverables','content'];
-  function esc(v){return String(v==null?'':v).replace(/[&<>\\'\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c];});}
-  function navCall(name,args,ok,fail){var r=google.script.run.withSuccessHandler(ok||function(){}).withFailureHandler(fail||function(){});return args===undefined?r[name]():r[name].apply(r,args)}
+  function esc(v){return String(v==null?'':v).replace(/[&<>\'\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c];});}
   function allowedPages(ctx){
     if(ctx.role==='Admin')return ADMIN_PAGES.reduce(function(o,p){o[p]=true;return o;},{});
     if(ctx.role==='Partner')return PARTNER_PAGES.reduce(function(o,p){o[p]=true;return o;},{});
@@ -20,85 +19,22 @@
     document.querySelectorAll('.nav .section').forEach(function(section){var next=section.nextElementSibling,has=false;while(next&&!next.classList.contains('section')){if(next.matches&&next.matches('button[data-page]')){has=true;break;}next=next.nextElementSibling;}if(!has)section.remove();});
     var user=document.querySelector('.user');if(user)user.textContent=(ctx.name||'User')+' · '+(ctx.role||'')+(ctx.jobFunction?' · '+ctx.jobFunction:'');
     window.__hmAuthContext=ctx;
+    var requested=new URLSearchParams(location.search).get('page')||'dashboard';
+    if(!allowed[requested])route('dashboard');
   }
-  function initRoleNav(){if(typeof google==='undefined'||!google.script||!google.script.run)return;navCall('getAuthContext',undefined,applyRoleNav,function(){});}
-  function handler(page){
-    var map={dashboard:['dashboard'],clients:['clients'],projects:['projects','projectPage'],tasks:['showTasksPage'],deliverables:['deliverables','deliverablesPage'],content:['contentBank','contentPage'],payments:['payments'],reports:['reports'],activities:['activities'],settings:['settings']};
-    var names=map[page]||[];
-    for(var i=0;i<names.length;i++)if(typeof window[names[i]]==='function')return window[names[i]];
-    return null;
-  }
+  function initRoleNav(){if(typeof google==='undefined'||!google.script||!google.script.run)return;google.script.run.withSuccessHandler(applyRoleNav).withFailureHandler(function(e){console.warn('Role navigation auth lookup failed',e);}).getAuthContext();}
+  function handler(page){var map={dashboard:['dashboard'],clients:['clients'],projects:['projects','projectPage'],tasks:['showTasksPage'],deliverables:['deliverables','deliverablesPage'],content:['contentBank','contentPage'],payments:['payments'],reports:['reports'],activities:['activities'],settings:['settings']};var names=map[page]||[];for(var i=0;i<names.length;i++)if(typeof window[names[i]]==='function')return window[names[i]];return null;}
   function setState(page){document.querySelectorAll('.nav button[data-page]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-page')===page);});var c=document.getElementById('crumb');if(c)c.textContent='Workspace / '+page.charAt(0).toUpperCase()+page.slice(1);}
-  function invokeButtonFallback(page){
-    var b=document.querySelector('.nav button[data-page="'+page+'"]');
-    if(!b||typeof b.onclick!=='function')return false;
-    var source=String(b.onclick);
-    if(source.indexOf("show('"+page+"')")>=0||source.indexOf('show("'+page+'")')>=0)return false;
-    try{b.onclick.call(b,{preventDefault:function(){},stopPropagation:function(){}});return true;}catch(e){return false;}
-  }
-  function executeModuleHtml(html){
-    if(!html)return false;
-    var holder=document.createElement('div');holder.innerHTML=html;
-    var scripts=holder.querySelectorAll('script');
-    if(!scripts.length)return false;
-    for(var i=0;i<scripts.length;i++){
-      var s=document.createElement('script');
-      if(scripts[i].src)s.src=scripts[i].src;
-      else s.text=scripts[i].textContent||scripts[i].innerHTML||'';
-      document.body.appendChild(s);
-      document.body.removeChild(s);
-    }
-    return true;
-  }
-  var moduleLoadStarted=false;
-  function loadNavigationFix(done){
-    if(handler('payments')&&handler('content')){done(true);return;}
-    if(moduleLoadStarted){setTimeout(function(){done(!!(handler('payments')||handler('content')));},150);return;}
-    moduleLoadStarted=true;
-    navCall('include',['NavigationFix'],function(html){
-      try{executeModuleHtml(html);}catch(e){}
-      setTimeout(function(){done(!!(handler('payments')||handler('content')));},0);
-    },function(){done(false);});
-  }
   function route(page){
-    page=String(page||'dashboard').toLowerCase();if(page==='home')page='dashboard';setState(page);
-    try{history.replaceState({},'',location.pathname+'?page='+encodeURIComponent(page));}catch(e){}
-    if(page==='tasks'&&typeof window.showTasksPage==='function'){window.showTasksPage();return true;}
-    var h=handler(page);if(h){h();return true;}
-    if(invokeButtonFallback(page))return true;
-    var attempts=0;
-    var retry=function(){
-      attempts++;
-      var x=handler(page);
-      if(x){x();return;}
-      if(invokeButtonFallback(page))return;
-      if(attempts===1&&(page==='content'||page==='payments')){
-        loadNavigationFix(function(){
-          var loaded=handler(page);
-          if(loaded){loaded();return;}
-          continueRetry();
-        });
-        return;
-      }
-      continueRetry();
-    };
-    var continueRetry=function(){
-      if(attempts<30){setTimeout(retry,100);return;}
-      var c=document.getElementById('content');if(c)c.innerHTML='<div class="card panel"><h2>Unable to open '+esc(page)+'</h2><div class="notice err">The page module did not finish loading. Please refresh once.</div></div>';
-    };
-    retry();return false;
+    page=String(page||'dashboard').toLowerCase();if(page==='home')page='dashboard';
+    var allowed=window.__hmAuthContext?allowedPages(window.__hmAuthContext):null;if(allowed&&!allowed[page])page='dashboard';
+    setState(page);try{history.replaceState({},'',location.pathname+'?page='+encodeURIComponent(page));}catch(e){}
+    var h=handler(page);
+    if(h){try{h();return true;}catch(e){console.error('CRM route failed:',page,e);var c=document.getElementById('content');if(c)c.innerHTML='<div class="card panel"><h2>Unable to open '+esc(page)+'</h2><div class="notice err">'+esc(e&&e.message?e.message:String(e))+'</div></div>';return false;}}
+    var c=document.getElementById('content');if(c)c.innerHTML='<div class="card panel"><h2>Module unavailable</h2><div class="notice err">The '+esc(page)+' module is not loaded.</div></div>';return false;
   }
-  function installRouter(){
-    if(window.__hmCentralRouterInstalled)return;
-    window.__hmCentralRouterInstalled=true;
-    window.__hmOriginalShow=window.show;
-    window.show=route;
-    document.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('.nav button[data-page]'):null;if(!b)return;var p=b.getAttribute('data-page');if(!p)return;ev.preventDefault();ev.stopImmediatePropagation();route(p);},true);
-    window.addEventListener('popstate',function(){route(new URLSearchParams(location.search).get('page')||'dashboard');});
-    var initial=new URLSearchParams(location.search).get('page')||'dashboard';setTimeout(function(){route(initial);},50);
-  }
-  function init(){installRouter();initRoleNav();}
+  function installRouter(){if(window.__hmCentralRouterInstalled)return;window.__hmCentralRouterInstalled=true;window.__hmOriginalShow=window.show;window.show=route;document.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('.nav button[data-page]'):null;if(!b)return;var p=b.getAttribute('data-page');if(!p)return;ev.preventDefault();ev.stopImmediatePropagation();route(p);},true);window.addEventListener('popstate',function(){route(new URLSearchParams(location.search).get('page')||'dashboard');});}
+  function init(){installRouter();initRoleNav();var initial=new URLSearchParams(location.search).get('page')||'dashboard';setTimeout(function(){route(initial);},0);}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-  window.addEventListener('load',function(){installRouter();initRoleNav();});
 })();
 </script>
