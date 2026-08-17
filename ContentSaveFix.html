@@ -1,6 +1,38 @@
 <script>
 (function(){
   'use strict';
+  function buildData(){
+    return {
+      title:(document.getElementById('hmEditTitle')||{}).value||'',
+      platform:(document.getElementById('hmEditPlatform')||{}).value||'',
+      contentType:(document.getElementById('hmEditType')||{}).value||'',
+      creativeBrief:(document.getElementById('hmEditBrief')||{}).value||'',
+      assetsInstructions:(document.getElementById('hmEditAssets')||{}).value||'',
+      status:(document.getElementById('hmEditStatus')||{}).value||'',
+      priority:(document.getElementById('hmEditPriority')||{}).value||'',
+      assignedTo:(document.getElementById('hmEditAssigned')||{}).value||'',
+      publishDate:(document.getElementById('hmEditPublish')||{}).value||''
+    };
+  }
+  function directSave(btn,id){
+    if(!window.google||!google.script||!google.script.run){alert('CRM connection is unavailable. Please refresh and try again.');return;}
+    btn.disabled=true;btn.textContent='Saving...';
+    google.script.run
+      .withSuccessHandler(function(updated){
+        btn.disabled=false;btn.textContent='Save Changes';
+        if(window.toast)toast('Content updated successfully.','ok');else alert('Content updated successfully.');
+        if(typeof window.closeModal==='function')closeModal();
+        if(window.__hmContent&&updated){window.__hmContent=window.__hmContent.map(function(x){return String(x['Content ID'])===String(id)?updated:x;});}
+        if(typeof window.renderContent==='function')window.renderContent();
+        else if(typeof window.contentBank==='function')window.contentBank();
+      })
+      .withFailureHandler(function(e){
+        btn.disabled=false;btn.textContent='Save Changes';
+        var msg='Unable to save content: '+(e&&e.message?e.message:String(e));
+        if(window.toast)toast(msg,'err');else alert(msg);
+      })
+      .updateContent(id,buildData());
+  }
   function wire(){
     var btn=document.getElementById('hmSaveContent');
     if(!btn||btn.__hmDirectSave)return;
@@ -9,19 +41,18 @@
     btn.style.position='relative';
     btn.style.zIndex='99999';
     btn.onclick=function(ev){
-      if(ev){ev.preventDefault();ev.stopPropagation();}
+      if(ev){ev.preventDefault();ev.stopImmediatePropagation();}
       var id=btn.getAttribute('data-content-id');
-      if(typeof window.saveContent==='function'){
-        window.saveContent(id);
-      }else if(window.google&&google.script&&google.script.run){
-        btn.disabled=true;btn.textContent='Saving...';
-        var data={title:(document.getElementById('hmEditTitle')||{}).value||'',platform:(document.getElementById('hmEditPlatform')||{}).value||'',contentType:(document.getElementById('hmEditType')||{}).value||'',creativeBrief:(document.getElementById('hmEditBrief')||{}).value||'',assetsInstructions:(document.getElementById('hmEditAssets')||{}).value||'',status:(document.getElementById('hmEditStatus')||{}).value||'',priority:(document.getElementById('hmEditPriority')||{}).value||'',assignedTo:(document.getElementById('hmEditAssigned')||{}).value||'',publishDate:(document.getElementById('hmEditPublish')||{}).value||''};
-        google.script.run.withSuccessHandler(function(){if(window.toast)toast('Content updated successfully.','ok');else alert('Content updated successfully.');btn.disabled=false;btn.textContent='Save Changes';}).withFailureHandler(function(e){btn.disabled=false;btn.textContent='Save Changes';if(window.toast)toast('Unable to save content: '+(e&&e.message?e.message:String(e)),'err');else alert('Unable to save content: '+(e&&e.message?e.message:String(e)));}).updateContent(id,data);
-      }
+      if(!id){if(window.toast)toast('Content ID is missing. Refresh Content Bank and reopen the item.','err');return;}
+      directSave(btn,id);
     };
   }
-  var observer=new MutationObserver(wire);
-  function start(){wire();observer.observe(document.body,{childList:true,subtree:true});setInterval(wire,500);}
+  function start(){
+    wire();
+    var observer=new MutationObserver(wire);
+    if(document.body)observer.observe(document.body,{childList:true,subtree:true});
+    setInterval(wire,300);
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
 </script>
